@@ -39,6 +39,34 @@
         </p>
       </div>
 
+      <!-- Progress Steps -->
+      <div v-if="video.progress" class="mb-4">
+        <div class="flex items-center gap-2">
+          <template v-for="(step, index) in progressSteps" :key="step.key">
+            <!-- Step -->
+            <div
+              :class="[
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium flex-1 justify-center',
+                getStepState(step.key).bgColor,
+                getStepState(step.key).color,
+              ]"
+              :title="step.label"
+            >
+              <component
+                :is="getStepState(step.key).icon"
+                :class="['w-3.5 h-3.5', getStepState(step.key).animation]"
+              />
+              <span class="hidden sm:inline">{{ step.label }}</span>
+            </div>
+            <!-- Connector -->
+            <div
+              v-if="index < progressSteps.length - 1"
+              class="w-4 h-0.5 bg-gray-700 rounded-full"
+            />
+          </template>
+        </div>
+      </div>
+
       <!-- Actions -->
       <div class="flex items-center gap-2 pt-3 border-t border-gray-800">
         <!-- Render Button -->
@@ -121,6 +149,9 @@ import {
   CheckCircle,
   AlertCircle,
   Sparkles,
+  FileText,
+  Volume2,
+  Video,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -181,6 +212,45 @@ const statusBadgeClasses = computed(() => currentStatus.value.badge);
 const statusText = computed(() => currentStatus.value.text);
 const statusIcon = computed(() => currentStatus.value.icon);
 const statusIconAnimation = computed(() => currentStatus.value.animation);
+
+// Progress steps configuration
+const progressSteps = [
+  { key: "generateScript", label: "Скрипт", icon: FileText },
+  { key: "generateAudio", label: "Аудио", icon: Volume2 },
+  { key: "renderVideo", label: "Видео", icon: Video },
+];
+
+const stepStateConfig = {
+  waiting: {
+    color: "text-gray-500",
+    bgColor: "bg-gray-700/50",
+    icon: Clock,
+    animation: "",
+  },
+  pending: {
+    color: "text-yellow-400",
+    bgColor: "bg-yellow-500/20",
+    icon: Loader2,
+    animation: "animate-spin",
+  },
+  success: {
+    color: "text-green-400",
+    bgColor: "bg-green-500/20",
+    icon: CheckCircle,
+    animation: "",
+  },
+  failed: {
+    color: "text-red-400",
+    bgColor: "bg-red-500/20",
+    icon: AlertCircle,
+    animation: "",
+  },
+};
+
+function getStepState(stepKey) {
+  const state = props.video.progress?.[stepKey] || "waiting";
+  return stepStateConfig[state] || stepStateConfig.waiting;
+}
 
 function formatDate(dateString) {
   const date = new Date(dateString);
