@@ -70,6 +70,8 @@
         @render="$emit('render', $event)"
         @delete="$emit('delete', $event)"
         @retry="$emit('retry', $event)"
+        @update="(id, data) => $emit('update', id, data)"
+        @retryFromStep="(id, step) => $emit('retryFromStep', id, step)"
       />
     </div>
   </div>
@@ -87,5 +89,12 @@ defineProps({
   isLoading: Boolean,
 });
 
-defineEmits(["refresh", "render", "delete", "retry"]);
+defineEmits([
+  "refresh",
+  "render",
+  "delete",
+  "retry",
+  "update",
+  "retryFromStep",
+]);
 </script>

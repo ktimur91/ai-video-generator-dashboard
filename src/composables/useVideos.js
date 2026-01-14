@@ -111,7 +111,8 @@ export function useVideos() {
   }
 
   // Повторить генерацию для FAILED видео
-  async function retryVideo(videoId) {
+  // fromStep: 1 = скрипт, 2 = аудио, 3 = видео, undefined = автоматически
+  async function retryVideo(videoId, fromStep) {
     try {
       error.value = null;
 
@@ -121,7 +122,7 @@ export function useVideos() {
         video.status = "GENERATING_ASSETS";
       }
 
-      const response = await api.post(`/retry/${videoId}`);
+      const response = await api.post(`/retry/${videoId}`, { fromStep });
 
       // Обновляем видео в списке
       if (response.data.video) {
@@ -142,6 +143,29 @@ export function useVideos() {
       }
 
       console.error("Failed to retry video:", err);
+      return null;
+    }
+  }
+
+  // Обновить скрипт/заголовок видео
+  async function updateVideo(videoId, data) {
+    try {
+      error.value = null;
+
+      const response = await api.patch(`/videos/${videoId}`, data);
+
+      // Обновляем видео в списке
+      if (response.data.video) {
+        const index = videos.value.findIndex((v) => v.id === videoId);
+        if (index !== -1) {
+          videos.value[index] = response.data.video;
+        }
+      }
+
+      return response.data.video;
+    } catch (err) {
+      error.value = err.response?.data?.message || err.message;
+      console.error("Failed to update video:", err);
       return null;
     }
   }
@@ -201,6 +225,7 @@ export function useVideos() {
     startRender,
     deleteVideo,
     retryVideo,
+    updateVideo,
     checkApiStatus,
     startPolling,
     stopPolling,

@@ -31,6 +31,8 @@
         @render="handleRender"
         @delete="handleDelete"
         @retry="handleRetry"
+        @update="handleUpdate"
+        @retryFromStep="handleRetryFromStep"
       />
     </main>
 
@@ -63,6 +65,7 @@ const {
   startRender,
   deleteVideo,
   retryVideo,
+  updateVideo,
 } = useVideos();
 
 async function handleCreate(topic) {
@@ -81,5 +84,13 @@ async function handleDelete(videoId) {
 
 async function handleRetry(videoId) {
   await retryVideo(videoId);
+}
+
+async function handleUpdate(videoId, data) {
+  await updateVideo(videoId, data);
+}
+
+async function handleRetryFromStep(videoId, fromStep) {
+  await retryVideo(videoId, fromStep);
 }
 </script>

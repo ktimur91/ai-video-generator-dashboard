@@ -2,14 +2,19 @@
   <div
     class="glass rounded-2xl overflow-hidden hover:border-gray-600/50 transition-all duration-300 group"
   >
-    <!-- Status Bar -->
     <div :class="['h-1', statusBarColor]" />
 
     <div class="p-5">
-      <!-- Header -->
       <div class="flex items-start justify-between mb-4">
         <div class="flex-1 min-w-0">
-          <h3 class="text-lg font-semibold text-white truncate pr-4">
+          <div v-if="isEditing" class="pr-4">
+            <input
+              v-model="editTitle"
+              class="w-full text-lg font-semibold text-white bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 focus:outline-none focus:border-primary-500"
+              placeholder="Заголовок видео"
+            />
+          </div>
+          <h3 v-else class="text-lg font-semibold text-white truncate pr-4">
             {{ video.title }}
           </h3>
           <p class="text-xs text-gray-500 mt-1">
@@ -17,7 +22,6 @@
           </p>
         </div>
 
-        <!-- Status Badge -->
         <div
           :class="[
             'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
@@ -32,46 +36,87 @@
         </div>
       </div>
 
-      <!-- Script Preview -->
       <div class="mb-4">
-        <p class="text-sm text-gray-400 line-clamp-3 leading-relaxed">
+        <div v-if="isEditing">
+          <textarea
+            v-model="editScript"
+            rows="5"
+            class="w-full text-sm text-gray-300 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:border-primary-500 resize-none"
+            placeholder="Текст сценария..."
+          />
+        </div>
+        <p v-else class="text-sm text-gray-400 line-clamp-3 leading-relaxed">
           {{ video.scriptText }}
         </p>
       </div>
 
-      <!-- Progress Steps -->
+      <div v-if="isEditing" class="flex gap-2 mb-4">
+        <button
+          @click="saveChanges"
+          class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 rounded-xl text-sm font-medium text-white transition-colors"
+        >
+          <Check class="w-4 h-4" />
+          <span>Сохранить</span>
+        </button>
+        <button
+          @click="cancelEditing"
+          class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-xl text-sm font-medium text-white transition-colors"
+        >
+          <X class="w-4 h-4" />
+          <span>Отмена</span>
+        </button>
+      </div>
+
       <div v-if="video.progress" class="mb-4">
         <div class="flex items-center gap-2">
           <template v-for="(step, index) in progressSteps" :key="step.key">
-            <!-- Step -->
-            <div
+            <button
+              @click="handleStepClick(index + 1)"
+              :disabled="!canRetryFromStep"
               :class="[
-                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium flex-1 justify-center',
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium flex-1 justify-center transition-all',
                 getStepState(step.key).bgColor,
                 getStepState(step.key).color,
+                canRetryFromStep
+                  ? 'hover:ring-2 hover:ring-primary-500 cursor-pointer'
+                  : 'cursor-default',
               ]"
-              :title="step.label"
+              :title="
+                canRetryFromStep ? 'Перезапустить с: ' + step.label : step.label
+              "
             >
               <component
                 :is="getStepState(step.key).icon"
                 :class="['w-3.5 h-3.5', getStepState(step.key).animation]"
               />
               <span class="hidden sm:inline">{{ step.label }}</span>
-            </div>
-            <!-- Connector -->
+            </button>
             <div
               v-if="index < progressSteps.length - 1"
               class="w-4 h-0.5 bg-gray-700 rounded-full"
             />
           </template>
         </div>
+        <p
+          v-if="canRetryFromStep"
+          class="text-xs text-gray-500 mt-2 text-center"
+        >
+          Нажмите на шаг чтобы перезапустить с него
+        </p>
       </div>
 
-      <!-- Actions -->
       <div class="flex items-center gap-2 pt-3 border-t border-gray-800">
-        <!-- Render Button -->
         <button
-          v-if="video.status === 'PENDING' && video.audioPath"
+          v-if="canEdit && !isEditing"
+          @click="startEditing"
+          class="p-2 rounded-xl hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+          title="Редактировать"
+        >
+          <Pencil class="w-4 h-4" />
+        </button>
+
+        <button
+          v-if="video.status === 'PENDING' && video.audioPath && !isEditing"
           @click="$emit('render', video.id)"
           class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 rounded-xl text-sm font-medium text-white transition-colors"
         >
@@ -79,7 +124,6 @@
           <span>Запустить рендер</span>
         </button>
 
-        <!-- Rendering Progress -->
         <div
           v-else-if="video.status === 'RENDERING'"
           class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/20 rounded-xl text-sm font-medium text-blue-400"
@@ -88,9 +132,10 @@
           <span>Рендеринг...</span>
         </div>
 
-        <!-- Play Button -->
         <button
-          v-else-if="video.status === 'COMPLETED' && video.videoPath"
+          v-else-if="
+            video.status === 'COMPLETED' && video.videoPath && !isEditing
+          "
           @click="openVideo"
           class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 rounded-xl text-sm font-medium text-white transition-colors"
         >
@@ -98,9 +143,8 @@
           <span>Воспроизвести</span>
         </button>
 
-        <!-- Failed Status with Retry Button -->
         <button
-          v-else-if="video.status === 'FAILED'"
+          v-else-if="video.status === 'FAILED' && !isEditing"
           @click="$emit('retry', video.id)"
           class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-sm font-medium text-white transition-colors"
         >
@@ -108,7 +152,6 @@
           <span>Повторить</span>
         </button>
 
-        <!-- Generating Assets -->
         <div
           v-else-if="video.status === 'GENERATING_ASSETS'"
           class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-yellow-500/20 rounded-xl text-sm font-medium text-yellow-400"
@@ -117,17 +160,16 @@
           <span>Генерация...</span>
         </div>
 
-        <!-- Waiting -->
         <div
-          v-else
+          v-else-if="!isEditing"
           class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-700/50 rounded-xl text-sm font-medium text-gray-400"
         >
           <Clock class="w-4 h-4" />
           <span>Ожидание</span>
         </div>
 
-        <!-- Delete Button -->
         <button
+          v-if="!isEditing"
           @click="$emit('delete', video.id)"
           class="p-2 rounded-xl hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors"
           title="Удалить"
@@ -140,7 +182,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { ref, computed } from "vue";
 import {
   Film,
   Play,
@@ -154,6 +196,9 @@ import {
   Volume2,
   Video,
   RotateCcw,
+  Pencil,
+  Check,
+  X,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -163,9 +208,56 @@ const props = defineProps({
   },
 });
 
-defineEmits(["render", "delete", "retry"]);
+const emit = defineEmits([
+  "render",
+  "delete",
+  "retry",
+  "update",
+  "retryFromStep",
+]);
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+const isEditing = ref(false);
+const editTitle = ref("");
+const editScript = ref("");
+
+const canEdit = computed(() => {
+  return !["GENERATING_ASSETS", "RENDERING"].includes(props.video.status);
+});
+
+const canRetryFromStep = computed(() => {
+  return (
+    ["FAILED", "COMPLETED", "PENDING"].includes(props.video.status) &&
+    !isEditing.value
+  );
+});
+
+function startEditing() {
+  editTitle.value = props.video.title || "";
+  editScript.value = props.video.scriptText || "";
+  isEditing.value = true;
+}
+
+function cancelEditing() {
+  isEditing.value = false;
+  editTitle.value = "";
+  editScript.value = "";
+}
+
+function saveChanges() {
+  emit("update", props.video.id, {
+    title: editTitle.value,
+    scriptText: editScript.value,
+  });
+  isEditing.value = false;
+}
+
+function handleStepClick(stepNumber) {
+  if (canRetryFromStep.value) {
+    emit("retryFromStep", props.video.id, stepNumber);
+  }
+}
 
 const statusConfig = {
   PENDING: {
@@ -215,7 +307,6 @@ const statusText = computed(() => currentStatus.value.text);
 const statusIcon = computed(() => currentStatus.value.icon);
 const statusIconAnimation = computed(() => currentStatus.value.animation);
 
-// Progress steps configuration
 const progressSteps = [
   { key: "generateScript", label: "Скрипт", icon: FileText },
   { key: "generateAudio", label: "Аудио", icon: Volume2 },
@@ -266,7 +357,7 @@ function formatDate(dateString) {
 
 function openVideo() {
   if (props.video.videoPath) {
-    window.open(`${API_URL}/${props.video.videoPath}`, "_blank");
+    window.open(API_URL + "/" + props.video.videoPath, "_blank");
   }
 }
 </script>
