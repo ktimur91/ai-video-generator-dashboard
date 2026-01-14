@@ -116,7 +116,11 @@
         </button>
 
         <button
-          v-if="video.status === 'PENDING' && video.audioPath && !isEditing"
+          v-if="
+            video.status === 'PENDING' &&
+            (video.segments || video.audioPath) &&
+            !isEditing
+          "
           @click="$emit('render', video.id)"
           class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 rounded-xl text-sm font-medium text-white transition-colors"
         >
@@ -308,9 +312,16 @@ const statusIcon = computed(() => currentStatus.value.icon);
 const statusIconAnimation = computed(() => currentStatus.value.animation);
 
 const progressSteps = [
-  { key: "generateScript", label: "Скрипт", icon: FileText },
-  { key: "generateAudio", label: "Аудио", icon: Volume2 },
-  { key: "renderVideo", label: "Видео", icon: Video },
+  { key: "generateScript", label: "Скрипт", shortLabel: "AI", icon: FileText },
+  { key: "searchVideos", label: "Видео", shortLabel: "🔍", icon: Video },
+  { key: "generateAudio", label: "Аудио", shortLabel: "🔊", icon: Volume2 },
+  {
+    key: "processSegments",
+    label: "Сегменты",
+    shortLabel: "⚙️",
+    icon: Sparkles,
+  },
+  { key: "renderVideo", label: "Рендер", shortLabel: "🎬", icon: Film },
 ];
 
 const stepStateConfig = {
