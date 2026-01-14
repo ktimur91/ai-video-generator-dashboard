@@ -30,6 +30,7 @@
         @refresh="fetchVideos"
         @render="handleRender"
         @delete="handleDelete"
+        @retry="handleRetry"
       />
     </main>
 
@@ -61,6 +62,7 @@ const {
   createVideo,
   startRender,
   deleteVideo,
+  retryVideo,
 } = useVideos();
 
 async function handleCreate(topic) {
@@ -75,5 +77,9 @@ async function handleDelete(videoId) {
   if (confirm("Удалить это видео?")) {
     await deleteVideo(videoId);
   }
+}
+
+async function handleRetry(videoId) {
+  await retryVideo(videoId);
 }
 </script>

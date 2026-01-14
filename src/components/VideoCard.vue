@@ -98,14 +98,15 @@
           <span>Воспроизвести</span>
         </button>
 
-        <!-- Failed Status -->
-        <div
+        <!-- Failed Status with Retry Button -->
+        <button
           v-else-if="video.status === 'FAILED'"
-          class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/20 rounded-xl text-sm font-medium text-red-400"
+          @click="$emit('retry', video.id)"
+          class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-sm font-medium text-white transition-colors"
         >
-          <AlertCircle class="w-4 h-4" />
-          <span>Ошибка</span>
-        </div>
+          <RotateCcw class="w-4 h-4" />
+          <span>Повторить</span>
+        </button>
 
         <!-- Generating Assets -->
         <div
@@ -152,6 +153,7 @@ import {
   FileText,
   Volume2,
   Video,
+  RotateCcw,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -161,7 +163,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(["render", "delete"]);
+defineEmits(["render", "delete", "retry"]);
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 

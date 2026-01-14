@@ -69,6 +69,7 @@
         :video="video"
         @render="$emit('render', $event)"
         @delete="$emit('delete', $event)"
+        @retry="$emit('retry', $event)"
       />
     </div>
   </div>
@@ -86,5 +87,5 @@ defineProps({
   isLoading: Boolean,
 });
 
-defineEmits(["refresh", "render", "delete"]);
+defineEmits(["refresh", "render", "delete", "retry"]);
 </script>

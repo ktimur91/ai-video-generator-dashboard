@@ -110,6 +110,42 @@ export function useVideos() {
     }
   }
 
+  // Повторить генерацию для FAILED видео
+  async function retryVideo(videoId) {
+    try {
+      error.value = null;
+
+      // Обновляем статус локально для мгновенного UI отклика
+      const video = videos.value.find((v) => v.id === videoId);
+      if (video) {
+        video.status = "GENERATING_ASSETS";
+      }
+
+      const response = await api.post(`/retry/${videoId}`);
+
+      // Обновляем видео в списке
+      if (response.data.video) {
+        const index = videos.value.findIndex((v) => v.id === videoId);
+        if (index !== -1) {
+          videos.value[index] = response.data.video;
+        }
+      }
+
+      return response.data.video;
+    } catch (err) {
+      error.value = err.response?.data?.message || err.message;
+
+      // Возвращаем статус обратно при ошибке
+      const video = videos.value.find((v) => v.id === videoId);
+      if (video) {
+        video.status = "FAILED";
+      }
+
+      console.error("Failed to retry video:", err);
+      return null;
+    }
+  }
+
   // Проверить статус API
   async function checkApiStatus() {
     try {
@@ -164,6 +200,7 @@ export function useVideos() {
     createVideo,
     startRender,
     deleteVideo,
+    retryVideo,
     checkApiStatus,
     startPolling,
     stopPolling,
