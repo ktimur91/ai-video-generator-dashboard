@@ -1,0 +1,32 @@
+{
+  "name": "front-dashboard",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/youtube-ai-generator/front-dashboard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/youtube-ai-generator/front-dashboard/issues"
+  },
+  "homepage": "https://gitlab.com/youtube-ai-generator/front-dashboard#readme",
+  "description": "",
+  "dependencies": {
+    "@vitejs/plugin-vue": "^6.0.3",
+    "autoprefixer": "^10.4.23",
+    "axios": "^1.13.2",
+    "lucide-vue-next": "^0.562.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "vite": "^7.3.1",
+    "vue": "^3.5.26"
+  }
+}
