@@ -29,8 +29,17 @@ export function useVideos() {
   }
 
   // Создать новое видео (генерация сценария + аудио)
-  async function createVideo(topic) {
-    if (!topic.trim()) {
+  async function createVideo(topic, videoSource = "pexels") {
+    // Поддержка как строки, так и объекта { topic, videoSource }
+    let topicText = topic;
+    let source = videoSource;
+
+    if (typeof topic === "object" && topic !== null) {
+      topicText = topic.topic;
+      source = topic.videoSource || "pexels";
+    }
+
+    if (!topicText || !topicText.trim()) {
       error.value = "Введите тему для видео";
       return null;
     }
@@ -39,7 +48,10 @@ export function useVideos() {
       isCreating.value = true;
       error.value = null;
 
-      const response = await api.post("/generate", { topic });
+      const response = await api.post("/generate", {
+        topic: topicText,
+        videoSource: source,
+      });
 
       // Добавляем новое видео в начало списка
       if (response.data.video) {
@@ -170,6 +182,31 @@ export function useVideos() {
     }
   }
 
+  // Обновить сегменты видео (для ручной замены видео-фонов)
+  async function updateSegments(videoId, segments) {
+    try {
+      error.value = null;
+
+      const response = await api.patch(`/videos/${videoId}/segments`, {
+        segments,
+      });
+
+      // Обновляем видео в списке
+      if (response.data.video) {
+        const index = videos.value.findIndex((v) => v.id === videoId);
+        if (index !== -1) {
+          videos.value[index] = response.data.video;
+        }
+      }
+
+      return true;
+    } catch (err) {
+      error.value = err.response?.data?.message || err.message;
+      console.error("Failed to update segments:", err);
+      return false;
+    }
+  }
+
   // Проверить статус API
   async function checkApiStatus() {
     try {
@@ -226,6 +263,7 @@ export function useVideos() {
     deleteVideo,
     retryVideo,
     updateVideo,
+    updateSegments,
     checkApiStatus,
     startPolling,
     stopPolling,

@@ -62,7 +62,7 @@
     </div>
 
     <!-- Video Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-else class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-4">
       <VideoCard
         v-for="video in videos"
         :key="video.id"
@@ -72,6 +72,7 @@
         @retry="$emit('retry', $event)"
         @update="(id, data) => $emit('update', id, data)"
         @retryFromStep="(id, step) => $emit('retryFromStep', id, step)"
+        @editBackgrounds="$emit('editBackgrounds', $event)"
       />
     </div>
   </div>
@@ -96,5 +97,6 @@ defineEmits([
   "retry",
   "update",
   "retryFromStep",
+  "editBackgrounds",
 ]);
 </script>

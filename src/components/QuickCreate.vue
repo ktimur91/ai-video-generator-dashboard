@@ -26,6 +26,37 @@
         </div>
       </div>
 
+      <!-- Выбор источника видео -->
+      <div class="flex items-center gap-4">
+        <label class="text-sm text-gray-400">Источник видео:</label>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            @click="videoSource = 'pexels'"
+            :class="[
+              'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              videoSource === 'pexels'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700',
+            ]"
+          >
+            Pexels
+          </button>
+          <button
+            type="button"
+            @click="videoSource = 'pixabay'"
+            :class="[
+              'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              videoSource === 'pixabay'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700',
+            ]"
+          >
+            Pixabay
+          </button>
+        </div>
+      </div>
+
       <div class="flex items-center gap-3">
         <button
           type="submit"
@@ -68,6 +99,7 @@ const props = defineProps({
 const emit = defineEmits(["create"]);
 
 const topic = ref("");
+const videoSource = ref("pexels");
 
 const examples = [
   "3 лайфхака для утра",
@@ -77,7 +109,10 @@ const examples = [
 
 function handleSubmit() {
   if (topic.value.trim()) {
-    emit("create", topic.value.trim());
+    emit("create", {
+      topic: topic.value.trim(),
+      videoSource: videoSource.value,
+    });
     topic.value = "";
   }
 }

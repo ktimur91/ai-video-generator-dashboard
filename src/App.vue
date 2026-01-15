@@ -33,6 +33,7 @@
         @retry="handleRetry"
         @update="handleUpdate"
         @retryFromStep="handleRetryFromStep"
+        @editBackgrounds="openBackgroundEditor"
       />
     </main>
 
@@ -44,14 +45,24 @@
         </p>
       </div>
     </footer>
+
+    <!-- Background Editor Modal -->
+    <VideoBackgroundEditor
+      :isOpen="isEditorOpen"
+      :video="editorVideo"
+      @close="closeBackgroundEditor"
+      @save="handleSaveBackgrounds"
+    />
   </div>
 </template>
 
 <script setup>
+import { ref } from "vue";
 import { AlertCircle, X } from "lucide-vue-next";
 import AppHeader from "./components/AppHeader.vue";
 import QuickCreate from "./components/QuickCreate.vue";
 import VideoGrid from "./components/VideoGrid.vue";
+import VideoBackgroundEditor from "./components/VideoBackgroundEditor.vue";
 import { useVideos } from "./composables/useVideos";
 
 const {
@@ -66,10 +77,36 @@ const {
   deleteVideo,
   retryVideo,
   updateVideo,
+  updateSegments,
 } = useVideos();
 
-async function handleCreate(topic) {
-  await createVideo(topic);
+// Background editor state
+const isEditorOpen = ref(false);
+const editorVideo = ref(null);
+
+function openBackgroundEditor(video) {
+  editorVideo.value = video;
+  isEditorOpen.value = true;
+}
+
+function closeBackgroundEditor() {
+  isEditorOpen.value = false;
+  editorVideo.value = null;
+}
+
+async function handleSaveBackgrounds(segments) {
+  if (!editorVideo.value) return;
+
+  const success = await updateSegments(editorVideo.value.id, segments);
+  if (success) {
+    closeBackgroundEditor();
+    // Автоматически запускаем рендер
+    await startRender(editorVideo.value.id);
+  }
+}
+
+async function handleCreate(data) {
+  await createVideo(data.topic, data.videoSource);
 }
 
 async function handleRender(videoId) {

@@ -110,9 +110,18 @@
           v-if="canEdit && !isEditing"
           @click="startEditing"
           class="p-2 rounded-xl hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
-          title="Редактировать"
+          title="Редактировать текст"
         >
           <Pencil class="w-4 h-4" />
+        </button>
+
+        <button
+          v-if="canEditBackgrounds && !isEditing"
+          @click="$emit('editBackgrounds', video)"
+          class="p-2 rounded-xl hover:bg-gray-700 text-gray-400 hover:text-purple-400 transition-colors"
+          title="Редактировать видео-фоны"
+        >
+          <ImageIcon class="w-4 h-4" />
         </button>
 
         <button
@@ -203,6 +212,7 @@ import {
   Pencil,
   Check,
   X,
+  Image as ImageIcon,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -218,6 +228,7 @@ const emit = defineEmits([
   "retry",
   "update",
   "retryFromStep",
+  "editBackgrounds",
 ]);
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -228,6 +239,13 @@ const editScript = ref("");
 
 const canEdit = computed(() => {
   return !["GENERATING_ASSETS", "RENDERING"].includes(props.video.status);
+});
+
+const canEditBackgrounds = computed(() => {
+  return (
+    props.video.segments &&
+    !["GENERATING_ASSETS", "RENDERING"].includes(props.video.status)
+  );
 });
 
 const canRetryFromStep = computed(() => {
@@ -312,9 +330,9 @@ const statusIcon = computed(() => currentStatus.value.icon);
 const statusIconAnimation = computed(() => currentStatus.value.animation);
 
 const progressSteps = [
-  { key: "generateScript", label: "Скрипт", shortLabel: "AI", icon: FileText },
-  { key: "searchVideos", label: "Видео", shortLabel: "🔍", icon: Video },
+  { key: "generateScript", label: "Текст", shortLabel: "AI", icon: FileText },
   { key: "generateAudio", label: "Аудио", shortLabel: "🔊", icon: Volume2 },
+  { key: "searchVideos", label: "Видео", shortLabel: "🔍", icon: Video },
   {
     key: "processSegments",
     label: "Сегменты",
