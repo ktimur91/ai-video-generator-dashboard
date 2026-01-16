@@ -121,6 +121,57 @@
             />
           </div>
 
+          <!-- Tags -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-400 mb-2">
+              Теги
+              <span class="text-gray-500"
+                >(автоматически сгенерированы AI)</span
+              >
+            </label>
+            <div
+              class="flex flex-wrap gap-2 p-3 bg-gray-800 border border-gray-700 rounded-xl min-h-[60px]"
+            >
+              <span
+                v-for="(tag, index) in publishTags"
+                :key="index"
+                class="flex items-center gap-1 px-2 py-1 bg-primary-500/20 text-primary-400 rounded-lg text-sm"
+              >
+                {{ tag }}
+                <button
+                  @click="removeTag(index)"
+                  class="hover:text-red-400 transition-colors"
+                >
+                  <X class="w-3 h-3" />
+                </button>
+              </span>
+              <input
+                v-model="newTag"
+                @keydown.enter.prevent="addTag"
+                class="flex-1 min-w-[100px] bg-transparent text-white placeholder-gray-500 focus:outline-none text-sm"
+                placeholder="Добавить тег..."
+              />
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ publishTags.length }} тегов
+            </p>
+          </div>
+
+          <!-- Category -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-400 mb-2">
+              Категория
+            </label>
+            <select
+              v-model="categoryId"
+              class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-primary-500"
+            >
+              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                {{ cat.name }}
+              </option>
+            </select>
+          </div>
+
           <!-- Privacy -->
           <div class="mb-5">
             <label class="block text-sm font-medium text-gray-400 mb-2">
@@ -228,13 +279,42 @@ const error = ref(null);
 
 const publishTitle = ref("");
 const publishDescription = ref("");
+const publishTags = ref([]);
+const newTag = ref("");
+const categoryId = ref("24"); // Default: Entertainment
 const privacyStatus = ref("private");
+
+const categories = [
+  { id: "24", name: "🎬 Развлечения" },
+  { id: "27", name: "📚 Образование" },
+  { id: "28", name: "🔬 Наука и технологии" },
+  { id: "26", name: "💡 Лайфхаки и стиль" },
+  { id: "22", name: "👤 Люди и блоги" },
+  { id: "23", name: "😂 Юмор" },
+  { id: "25", name: "📰 Новости" },
+  { id: "17", name: "⚽ Спорт" },
+  { id: "20", name: "🎮 Игры" },
+  { id: "10", name: "🎵 Музыка" },
+];
 
 const privacyOptions = [
   { value: "public", label: "Публичное", icon: Globe },
   { value: "unlisted", label: "По ссылке", icon: EyeOff },
   { value: "private", label: "Приватное", icon: Lock },
 ];
+
+// Tag management
+function addTag() {
+  const tag = newTag.value.trim();
+  if (tag && !publishTags.value.includes(tag)) {
+    publishTags.value.push(tag);
+    newTag.value = "";
+  }
+}
+
+function removeTag(index) {
+  publishTags.value.splice(index, 1);
+}
 
 // Check YouTube connection status
 async function checkYoutubeStatus() {
@@ -284,6 +364,8 @@ async function publish() {
     const response = await youtubeApi.publish(props.video.id, {
       customTitle: publishTitle.value,
       customDescription: publishDescription.value,
+      tags: publishTags.value,
+      categoryId: categoryId.value,
       privacyStatus: privacyStatus.value,
     });
 
@@ -316,7 +398,42 @@ watch(
   (newVideo) => {
     if (newVideo) {
       publishTitle.value = newVideo.title || "";
-      publishDescription.value = `${newVideo.title}\n\n#shorts #youtube`;
+
+      // Формируем описание с хештегами
+      let thematicHashtags = "";
+      if (newVideo.hashtags) {
+        try {
+          const hashtags =
+            typeof newVideo.hashtags === "string"
+              ? JSON.parse(newVideo.hashtags)
+              : newVideo.hashtags;
+          if (Array.isArray(hashtags) && hashtags.length > 0) {
+            thematicHashtags = hashtags.join(" ");
+          }
+        } catch {
+          thematicHashtags = "";
+        }
+      }
+
+      // Базовые хештеги + тематические
+      const baseHashtags = "#shorts #BrainBites #факты";
+      publishDescription.value =
+        `${newVideo.title}\n\n${baseHashtags} ${thematicHashtags}`.trim();
+
+      // Load tags from video if available
+      if (newVideo.tags) {
+        try {
+          const tags =
+            typeof newVideo.tags === "string"
+              ? JSON.parse(newVideo.tags)
+              : newVideo.tags;
+          publishTags.value = Array.isArray(tags) ? tags : [];
+        } catch {
+          publishTags.value = ["shorts", "факты", "интересное"];
+        }
+      } else {
+        publishTags.value = ["shorts", "факты", "интересное"];
+      }
       publishResult.value = null;
       error.value = null;
     }

@@ -8,7 +8,7 @@
 
     <!-- Modal -->
     <div
-      class="relative bg-gray-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+      class="relative bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
     >
       <!-- Header -->
       <div
@@ -26,7 +26,7 @@
       <!-- Content -->
       <div class="flex-1 overflow-hidden flex">
         <!-- Segments List -->
-        <div class="w-1/3 border-r border-gray-800 overflow-y-auto p-4">
+        <div class="w-1/4 border-r border-gray-800 overflow-y-auto p-4">
           <h3 class="text-sm font-medium text-gray-400 mb-3">Сегменты</h3>
           <div class="space-y-2">
             <button
@@ -68,62 +68,57 @@
         <div class="flex-1 overflow-y-auto p-4">
           <div v-if="selectedSegmentIndex !== null">
             <!-- Current Video Preview -->
-            <div class="mb-4">
-              <h3 class="text-sm font-medium text-gray-400 mb-2">
-                Текущий фон для:
-                {{
-                  getSegmentLabel(
-                    localSegments[selectedSegmentIndex],
-                    selectedSegmentIndex
-                  )
-                }}
-              </h3>
-              <div
-                v-if="localSegments[selectedSegmentIndex]?.stockVideo?.url"
-                class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[9/16] max-w-[200px]"
-              >
-                <video
-                  :src="localSegments[selectedSegmentIndex].stockVideo.url"
-                  class="w-full h-full object-cover"
-                  muted
-                  loop
-                  autoplay
-                  playsinline
-                />
-                <button
-                  @click="removeVideo(selectedSegmentIndex)"
-                  class="absolute top-2 right-2 p-1 bg-red-600 rounded-lg hover:bg-red-500"
+            <div class="grid grid-cols-[auto_1fr] gap-5 mb-4">
+              <div>
+                <h3 class="text-sm font-medium text-gray-400 mb-2">
+                  Фоновое видео
+                </h3>
+                <div
+                  v-if="localSegments[selectedSegmentIndex]?.stockVideo?.url"
+                  class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[9/16] max-w-[200px]"
                 >
-                  <Trash2 class="w-4 h-4 text-white" />
-                </button>
+                  <video
+                    :src="localSegments[selectedSegmentIndex].stockVideo.url"
+                    class="w-full h-full object-cover"
+                    muted
+                    loop
+                    autoplay
+                    playsinline
+                  />
+                  <button
+                    @click="removeVideo(selectedSegmentIndex)"
+                    class="absolute top-2 right-2 p-1 bg-red-600 rounded-lg hover:bg-red-500"
+                  >
+                    <Trash2 class="w-4 h-4 text-white" />
+                  </button>
+                </div>
+                <div
+                  v-else
+                  class="rounded-xl bg-gray-800 aspect-[9/16] w-[200px] flex items-center justify-center text-gray-500"
+                >
+                  Нет видео
+                </div>
               </div>
-              <div
-                v-else
-                class="rounded-xl bg-gray-800 aspect-[9/16] max-w-[200px] flex items-center justify-center text-gray-500"
-              >
-                Нет видео
+
+              <div>
+                <h3 class="text-sm font-medium text-gray-400 mb-2">Текст</h3>
+                {{ localSegments[selectedSegmentIndex]?.text }}
               </div>
             </div>
 
             <!-- Search -->
             <div class="space-y-3">
+              <!-- Search Input -->
               <div class="flex gap-2">
                 <input
                   v-model="searchQuery"
                   type="text"
                   placeholder="Поиск видео..."
                   class="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  @keyup.enter="searchVideos"
+                  @keyup.enter="searchVideos(true)"
                 />
-                <select
-                  v-model="searchSource"
-                  class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="pexels">Pexels</option>
-                  <option value="pixabay">Pixabay</option>
-                </select>
                 <button
-                  @click="searchVideos"
+                  @click="searchVideos(true)"
                   :disabled="isSearching || !searchQuery"
                   class="px-4 py-2 bg-primary-600 hover:bg-primary-500 disabled:bg-gray-700 rounded-xl text-white font-medium transition-colors"
                 >
@@ -132,48 +127,109 @@
                 </button>
               </div>
 
-              <!-- Search Results -->
-              <div
-                v-if="searchResults.length > 0"
-                class="grid grid-cols-3 gap-3"
-              >
-                <button
-                  v-for="video in searchResults"
-                  :key="video.id"
-                  @click="selectVideo(video)"
-                  class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[9/16] hover:ring-2 hover:ring-primary-500 transition-all group"
+              <!-- Vertical Only Toggle -->
+              <div class="flex items-center gap-4">
+                <label
+                  class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer"
                 >
-                  <video
-                    :src="video.url"
-                    class="w-full h-full object-cover"
-                    muted
-                    loop
-                    playsinline
-                    @mouseenter="($event.target as HTMLVideoElement).play()"
-                    @mouseleave="($event.target as HTMLVideoElement).pause()"
+                  <input
+                    type="checkbox"
+                    v-model="verticalOnly"
+                    class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-primary-600 focus:ring-primary-500"
                   />
-                  <div
-                    class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  Только вертикальные видео
+                </label>
+              </div>
+
+              <!-- Source Tabs -->
+              <div class="flex gap-2 border-b border-gray-700">
+                <button
+                  v-for="source in sources"
+                  :key="source.id"
+                  @click="switchSource(source.id)"
+                  :class="[
+                    'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
+                    activeSource === source.id
+                      ? 'text-primary-400 border-primary-500'
+                      : 'text-gray-400 border-transparent hover:text-gray-300',
+                  ]"
+                >
+                  {{ source.name }}
+                  <span
+                    v-if="sourceResults[source.id]?.videos.length"
+                    class="ml-1 text-xs opacity-70"
                   >
-                    <Check class="w-8 h-8 text-white" />
-                  </div>
-                  <div
-                    class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/70 rounded text-xs text-white"
+                    ({{ sourceResults[source.id].videos.length }})
+                  </span>
+                </button>
+              </div>
+
+              <!-- Search Results for Active Source -->
+              <div
+                v-if="currentSourceResults.videos.length > 0"
+                class="space-y-3"
+              >
+                <div class="grid grid-cols-4 gap-3">
+                  <button
+                    v-for="video in currentSourceResults.videos"
+                    :key="video.id"
+                    @click="selectVideo(video)"
+                    :class="[
+                      'relative rounded-xl overflow-hidden bg-gray-800 aspect-[9/16] transition-all group',
+                      !video.isVertical
+                        ? 'ring-2 ring-yellow-500/50'
+                        : 'hover:ring-2 hover:ring-primary-500',
+                    ]"
                   >
-                    {{ video.duration }}s
-                  </div>
+                    <video
+                      :src="video.url"
+                      class="w-full h-full object-cover"
+                      muted
+                      loop
+                      playsinline
+                      @mouseenter="($event.target as HTMLVideoElement).play()"
+                      @mouseleave="($event.target as HTMLVideoElement).pause()"
+                    />
+                    <div
+                      class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    >
+                      <Check class="w-8 h-8 text-white" />
+                    </div>
+                    <div
+                      class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/70 rounded text-xs text-white"
+                    >
+                      {{ video.duration }}s
+                    </div>
+                    <div
+                      v-if="!video.isVertical"
+                      class="absolute top-1 left-1 px-1.5 py-0.5 bg-yellow-600/90 rounded text-xs text-white"
+                    >
+                      ⬌
+                    </div>
+                  </button>
+                </div>
+
+                <!-- Load More Button -->
+                <button
+                  v-if="currentSourceResults.hasMore"
+                  @click="loadMore"
+                  :disabled="isSearching"
+                  class="w-full py-3 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-800 rounded-xl text-gray-300 font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <Loader2 v-if="isSearching" class="w-4 h-4 animate-spin" />
+                  <span v-else>Загрузить ещё</span>
                 </button>
               </div>
 
               <p
-                v-else-if="hasSearched && !isSearching"
+                v-else-if="hasSearchedInSource && !isSearching"
                 class="text-gray-500 text-center py-8"
               >
                 Видео не найдены. Попробуйте другие ключевые слова.
               </p>
 
               <p
-                v-else-if="!hasSearched"
+                v-else-if="!hasSearchedInSource"
                 class="text-gray-500 text-center py-8"
               >
                 Введите ключевые слова для поиска видео
@@ -218,9 +274,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, reactive } from "vue";
 import { X, Search, Loader2, Check, Trash2 } from "lucide-vue-next";
 import api from "../api";
+
+interface VideoResult {
+  id: string | number;
+  url: string;
+  width: number;
+  height: number;
+  duration: number;
+  photographer: string;
+  thumbnail?: string;
+  isVertical: boolean;
+}
+
+interface SourceResults {
+  videos: VideoResult[];
+  page: number;
+  hasMore: boolean;
+  query: string;
+  hasSearched: boolean;
+}
 
 const props = defineProps<{
   isOpen: boolean;
@@ -229,14 +304,41 @@ const props = defineProps<{
 
 const emit = defineEmits(["close", "save"]);
 
+const sources = [
+  { id: "pexels", name: "Pexels" },
+  { id: "pixabay", name: "Pixabay" },
+];
+
 const localSegments = ref<any[]>([]);
 const originalSegments = ref<any[]>([]);
 const selectedSegmentIndex = ref<number | null>(null);
 const searchQuery = ref("");
-const searchSource = ref("pexels");
-const searchResults = ref<any[]>([]);
+const activeSource = ref("pexels");
+const verticalOnly = ref(true);
 const isSearching = ref(false);
-const hasSearched = ref(false);
+
+// Результаты поиска для каждого источника (сохраняются отдельно)
+const sourceResults = reactive<Record<string, SourceResults>>({
+  pexels: {
+    videos: [],
+    page: 1,
+    hasMore: false,
+    query: "",
+    hasSearched: false,
+  },
+  pixabay: {
+    videos: [],
+    page: 1,
+    hasMore: false,
+    query: "",
+    hasSearched: false,
+  },
+});
+
+const currentSourceResults = computed(() => sourceResults[activeSource.value]);
+const hasSearchedInSource = computed(
+  () => currentSourceResults.value.hasSearched
+);
 
 watch(
   () => props.isOpen,
@@ -250,8 +352,21 @@ watch(
       originalSegments.value = JSON.parse(JSON.stringify(segments));
       selectedSegmentIndex.value = null;
       searchQuery.value = "";
-      searchResults.value = [];
-      hasSearched.value = false;
+      // Сбрасываем результаты поиска при открытии модалки
+      sourceResults.pexels = {
+        videos: [],
+        page: 1,
+        hasMore: false,
+        query: "",
+        hasSearched: false,
+      };
+      sourceResults.pixabay = {
+        videos: [],
+        page: 1,
+        hasMore: false,
+        query: "",
+        hasSearched: false,
+      };
     }
   }
 );
@@ -294,8 +409,7 @@ function getSegmentLabel(segment: any, index: number) {
 
 function selectSegment(index: number) {
   selectedSegmentIndex.value = index;
-  searchResults.value = [];
-  hasSearched.value = false;
+  // НЕ очищаем результаты поиска при выборе сегмента
 
   // Pre-fill search with segment keywords
   const segment = localSegments.value[index];
@@ -310,29 +424,61 @@ function selectSegment(index: number) {
   }
 }
 
-async function searchVideos() {
+function switchSource(sourceId: string) {
+  activeSource.value = sourceId;
+}
+
+async function searchVideos(resetPage = true) {
   if (!searchQuery.value.trim()) return;
 
   isSearching.value = true;
-  hasSearched.value = true;
+  const source = activeSource.value;
+
+  if (resetPage) {
+    sourceResults[source].page = 1;
+    sourceResults[source].videos = [];
+  }
+
+  sourceResults[source].hasSearched = true;
+  sourceResults[source].query = searchQuery.value;
 
   try {
     const response = await api.get("/search-videos", {
       params: {
         q: searchQuery.value,
-        source: searchSource.value,
+        source: source,
+        page: sourceResults[source].page,
+        verticalOnly: verticalOnly.value.toString(),
       },
     });
-    searchResults.value = response.data.videos || [];
+
+    const newVideos = response.data.videos || [];
+    if (resetPage) {
+      sourceResults[source].videos = newVideos;
+    } else {
+      sourceResults[source].videos = [
+        ...sourceResults[source].videos,
+        ...newVideos,
+      ];
+    }
+    sourceResults[source].hasMore = response.data.hasMore || false;
   } catch (error) {
     console.error("Search error:", error);
-    searchResults.value = [];
+    if (resetPage) {
+      sourceResults[source].videos = [];
+    }
   } finally {
     isSearching.value = false;
   }
 }
 
-function selectVideo(video: any) {
+async function loadMore() {
+  const source = activeSource.value;
+  sourceResults[source].page++;
+  await searchVideos(false);
+}
+
+function selectVideo(video: VideoResult) {
   if (selectedSegmentIndex.value === null) return;
 
   localSegments.value[selectedSegmentIndex.value].stockVideo = {
@@ -342,10 +488,10 @@ function selectVideo(video: any) {
     height: video.height,
     duration: video.duration,
     photographer: video.photographer,
+    isVertical: video.isVertical,
   };
 
-  searchResults.value = [];
-  hasSearched.value = false;
+  // НЕ очищаем результаты после выбора видео
 }
 
 function removeVideo(index: number) {
