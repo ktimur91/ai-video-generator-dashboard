@@ -1,7 +1,8 @@
 import axios from "axios";
 
 // Базовый URL API (можно менять через env)
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -19,5 +20,21 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// YouTube API functions
+export const youtubeApi = {
+  // Проверить статус авторизации
+  getStatus: () => api.get("/youtube/status"),
+
+  // Получить URL для авторизации
+  getAuthUrl: () => api.get("/youtube/auth"),
+
+  // Выход из аккаунта
+  logout: () => api.post("/youtube/logout"),
+
+  // Опубликовать видео
+  publish: (videoId, options = {}) =>
+    api.post(`/videos/${videoId}/publish`, options),
+};
 
 export default api;

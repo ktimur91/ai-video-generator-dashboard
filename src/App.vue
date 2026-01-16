@@ -34,6 +34,7 @@
         @update="handleUpdate"
         @retryFromStep="handleRetryFromStep"
         @editBackgrounds="openBackgroundEditor"
+        @publish="openPublishModal"
       />
     </main>
 
@@ -53,6 +54,14 @@
       @close="closeBackgroundEditor"
       @save="handleSaveBackgrounds"
     />
+
+    <!-- YouTube Publish Modal -->
+    <YouTubePublishModal
+      :isOpen="isPublishModalOpen"
+      :video="publishVideo"
+      @close="closePublishModal"
+      @published="handlePublished"
+    />
   </div>
 </template>
 
@@ -63,6 +72,7 @@ import AppHeader from "./components/AppHeader.vue";
 import QuickCreate from "./components/QuickCreate.vue";
 import VideoGrid from "./components/VideoGrid.vue";
 import VideoBackgroundEditor from "./components/VideoBackgroundEditor.vue";
+import YouTubePublishModal from "./components/YouTubePublishModal.vue";
 import { useVideos } from "./composables/useVideos";
 
 const {
@@ -84,6 +94,10 @@ const {
 const isEditorOpen = ref(false);
 const editorVideo = ref(null);
 
+// YouTube publish modal state
+const isPublishModalOpen = ref(false);
+const publishVideo = ref(null);
+
 function openBackgroundEditor(video) {
   editorVideo.value = video;
   isEditorOpen.value = true;
@@ -92,6 +106,21 @@ function openBackgroundEditor(video) {
 function closeBackgroundEditor() {
   isEditorOpen.value = false;
   editorVideo.value = null;
+}
+
+function openPublishModal(video) {
+  publishVideo.value = video;
+  isPublishModalOpen.value = true;
+}
+
+function closePublishModal() {
+  isPublishModalOpen.value = false;
+  publishVideo.value = null;
+}
+
+function handlePublished() {
+  // Refresh videos to get updated YouTube info
+  fetchVideos();
 }
 
 async function handleSaveBackgrounds(segments) {

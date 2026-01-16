@@ -156,6 +156,32 @@
           <span>Воспроизвести</span>
         </button>
 
+        <!-- YouTube Publish Button -->
+        <button
+          v-if="
+            video.status === 'COMPLETED' &&
+            video.videoPath &&
+            !isEditing &&
+            !video.youtubeId
+          "
+          @click="$emit('publish', video)"
+          class="p-2 rounded-xl hover:bg-red-500/20 text-gray-400 hover:text-red-500 transition-colors"
+          title="Опубликовать на YouTube"
+        >
+          <Youtube class="w-4 h-4" />
+        </button>
+
+        <!-- Published on YouTube indicator -->
+        <a
+          v-if="video.youtubeId"
+          :href="video.youtubeUrl"
+          target="_blank"
+          class="p-2 rounded-xl bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
+          title="Открыть на YouTube"
+        >
+          <Youtube class="w-4 h-4" />
+        </a>
+
         <button
           v-else-if="video.status === 'FAILED' && !isEditing"
           @click="$emit('retry', video.id)"
@@ -213,6 +239,7 @@ import {
   Check,
   X,
   Image as ImageIcon,
+  Youtube,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -229,6 +256,7 @@ const emit = defineEmits([
   "update",
   "retryFromStep",
   "editBackgrounds",
+  "publish",
 ]);
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
