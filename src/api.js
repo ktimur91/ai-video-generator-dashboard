@@ -37,4 +37,10 @@ export const youtubeApi = {
     api.post(`/videos/${videoId}/publish`, options),
 };
 
+// Video generation control
+export const generationApi = {
+  // Остановить генерацию
+  stop: (videoId) => api.post(`/stop/${videoId}`),
+};
+
 export default api;

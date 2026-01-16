@@ -35,6 +35,7 @@
         @retryFromStep="handleRetryFromStep"
         @editBackgrounds="openBackgroundEditor"
         @publish="openPublishModal"
+        @stop="handleStop"
       />
     </main>
 
@@ -88,6 +89,7 @@ const {
   retryVideo,
   updateVideo,
   updateSegments,
+  stopGeneration,
 } = useVideos();
 
 // Background editor state
@@ -158,5 +160,9 @@ async function handleUpdate(videoId, data) {
 
 async function handleRetryFromStep(videoId, fromStep) {
   await retryVideo(videoId, fromStep);
+}
+
+async function handleStop(videoId) {
+  await stopGeneration(videoId);
 }
 </script>

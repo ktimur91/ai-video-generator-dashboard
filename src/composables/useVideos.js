@@ -1,5 +1,5 @@
 import { ref, onMounted, onUnmounted } from "vue";
-import api from "../api";
+import api, { generationApi } from "../api";
 
 export function useVideos() {
   const videos = ref([]);
@@ -207,6 +207,24 @@ export function useVideos() {
     }
   }
 
+  // Остановить генерацию видео
+  async function stopGeneration(videoId) {
+    try {
+      error.value = null;
+
+      const response = await generationApi.stop(videoId);
+
+      // Обновляем видео в списке
+      await fetchVideos();
+
+      return response.data;
+    } catch (err) {
+      error.value = err.response?.data?.message || err.message;
+      console.error("Failed to stop generation:", err);
+      return null;
+    }
+  }
+
   // Проверить статус API
   async function checkApiStatus() {
     try {
@@ -264,6 +282,7 @@ export function useVideos() {
     retryVideo,
     updateVideo,
     updateSegments,
+    stopGeneration,
     checkApiStatus,
     startPolling,
     stopPolling,

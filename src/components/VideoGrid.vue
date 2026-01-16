@@ -74,6 +74,7 @@
         @retryFromStep="(id, step) => $emit('retryFromStep', id, step)"
         @editBackgrounds="$emit('editBackgrounds', $event)"
         @publish="$emit('publish', $event)"
+        @stop="$emit('stop', $event)"
       />
     </div>
   </div>
@@ -100,5 +101,6 @@ defineEmits([
   "retryFromStep",
   "editBackgrounds",
   "publish",
+  "stop",
 ]);
 </script>

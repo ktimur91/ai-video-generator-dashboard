@@ -70,30 +70,44 @@
       <div v-if="video.progress" class="mb-4">
         <div class="flex items-center gap-2">
           <template v-for="(step, index) in progressSteps" :key="step.key">
-            <button
-              @click="handleStepClick(index + 1)"
-              :disabled="!canRetryFromStep"
-              :class="[
-                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium flex-1 justify-center transition-all',
-                getStepState(step.key).bgColor,
-                getStepState(step.key).color,
-                canRetryFromStep
-                  ? 'hover:ring-2 hover:ring-primary-500 cursor-pointer'
-                  : 'cursor-default',
-              ]"
-              :title="
-                canRetryFromStep ? 'Перезапустить с: ' + step.label : step.label
-              "
-            >
-              <component
-                :is="getStepState(step.key).icon"
-                :class="['w-3.5 h-3.5', getStepState(step.key).animation]"
-              />
-              <span class="hidden sm:inline">{{ step.label }}</span>
-            </button>
+            <!-- Step button with stop functionality for pending steps -->
+            <div class="relative flex-1">
+              <button
+                @click="handleStepClick(index + 1)"
+                :disabled="!canRetryFromStep && !isStepPending(step.key)"
+                :class="[
+                  'w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium justify-center transition-all',
+                  getStepState(step.key).bgColor,
+                  getStepState(step.key).color,
+                  canRetryFromStep
+                    ? 'hover:ring-2 hover:ring-primary-500 cursor-pointer'
+                    : 'cursor-default',
+                ]"
+                :title="
+                  canRetryFromStep
+                    ? 'Перезапустить с: ' + step.label
+                    : step.label
+                "
+              >
+                <component
+                  :is="getStepState(step.key).icon"
+                  :class="['w-3.5 h-3.5', getStepState(step.key).animation]"
+                />
+                <span class="hidden sm:inline">{{ step.label }}</span>
+              </button>
+              <!-- Stop button overlay for pending step -->
+              <button
+                v-if="isStepPending(step.key)"
+                @click.stop="$emit('stop', video.id)"
+                class="absolute -top-1 -right-1 p-1 bg-red-600 hover:bg-red-500 rounded-full shadow-lg transition-colors z-10"
+                title="Остановить генерацию"
+              >
+                <StopCircle class="w-3 h-3 text-white" />
+              </button>
+            </div>
             <div
               v-if="index < progressSteps.length - 1"
-              class="w-4 h-0.5 bg-gray-700 rounded-full"
+              class="w-4 h-0.5 bg-gray-700 rounded-full flex-shrink-0"
             />
           </template>
         </div>
@@ -240,6 +254,7 @@ import {
   X,
   Image as ImageIcon,
   Youtube,
+  StopCircle,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -257,6 +272,7 @@ const emit = defineEmits([
   "retryFromStep",
   "editBackgrounds",
   "publish",
+  "stop",
 ]);
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -309,6 +325,10 @@ function handleStepClick(stepNumber) {
   }
 }
 
+function isStepPending(stepKey) {
+  return props.video.progress?.[stepKey] === "pending";
+}
+
 const statusConfig = {
   PENDING: {
     color: "bg-yellow-500",
@@ -359,8 +379,8 @@ const statusIconAnimation = computed(() => currentStatus.value.animation);
 
 const progressSteps = [
   { key: "generateScript", label: "Текст", shortLabel: "AI", icon: FileText },
-  { key: "generateAudio", label: "Аудио", shortLabel: "🔊", icon: Volume2 },
   { key: "searchVideos", label: "Видео", shortLabel: "🔍", icon: Video },
+  { key: "generateAudio", label: "Аудио", shortLabel: "🔊", icon: Volume2 },
   {
     key: "processSegments",
     label: "Сегменты",
