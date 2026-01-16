@@ -225,6 +225,61 @@ export function useVideos() {
     }
   }
 
+  // Одобрить видео и продолжить генерацию аудио
+  async function approveVideo(videoId, segments, backgroundMusicFilename) {
+    try {
+      error.value = null;
+
+      // Обновляем статус локально для мгновенного UI отклика
+      const video = videos.value.find((v) => v.id === videoId);
+      if (video) {
+        video.status = "GENERATING_ASSETS";
+        video.progress = {
+          ...video.progress,
+          awaitingReview: "success",
+          generateAudio: "pending",
+        };
+      }
+
+      const response = await api.post(`/approve/${videoId}`, {
+        segments,
+        backgroundMusicFilename,
+      });
+
+      // Обновляем видео в списке
+      if (response.data.video) {
+        const index = videos.value.findIndex((v) => v.id === videoId);
+        if (index !== -1) {
+          videos.value[index] = response.data.video;
+        }
+      }
+
+      return response.data.video;
+    } catch (err) {
+      error.value = err.response?.data?.message || err.message;
+
+      // Возвращаем статус обратно при ошибке
+      const video = videos.value.find((v) => v.id === videoId);
+      if (video) {
+        video.status = "AWAITING_REVIEW";
+      }
+
+      console.error("Failed to approve video:", err);
+      return null;
+    }
+  }
+
+  // Получить список доступной фоновой музыки
+  async function fetchBackgroundMusic() {
+    try {
+      const response = await api.get("/background-music");
+      return response.data.music || [];
+    } catch (err) {
+      console.error("Failed to fetch background music:", err);
+      return [];
+    }
+  }
+
   // Проверить статус API
   async function checkApiStatus() {
     try {
@@ -283,6 +338,8 @@ export function useVideos() {
     updateVideo,
     updateSegments,
     stopGeneration,
+    approveVideo,
+    fetchBackgroundMusic,
     checkApiStatus,
     startPolling,
     stopPolling,

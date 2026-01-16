@@ -33,9 +33,9 @@
         @retry="handleRetry"
         @update="handleUpdate"
         @retryFromStep="handleRetryFromStep"
-        @editBackgrounds="openBackgroundEditor"
         @publish="openPublishModal"
         @stop="handleStop"
+        @review="openReviewEditor"
       />
     </main>
 
@@ -52,8 +52,11 @@
     <VideoBackgroundEditor
       :isOpen="isEditorOpen"
       :video="editorVideo"
+      :isReviewMode="isReviewMode"
+      :fetchBackgroundMusic="fetchBackgroundMusic"
       @close="closeBackgroundEditor"
       @save="handleSaveBackgrounds"
+      @approve="handleApproveAndContinue"
     />
 
     <!-- YouTube Publish Modal -->
@@ -90,11 +93,14 @@ const {
   updateVideo,
   updateSegments,
   stopGeneration,
+  approveVideo,
+  fetchBackgroundMusic,
 } = useVideos();
 
 // Background editor state
 const isEditorOpen = ref(false);
 const editorVideo = ref(null);
+const isReviewMode = ref(false);
 
 // YouTube publish modal state
 const isPublishModalOpen = ref(false);
@@ -102,12 +108,20 @@ const publishVideo = ref(null);
 
 function openBackgroundEditor(video) {
   editorVideo.value = video;
+  isReviewMode.value = false;
+  isEditorOpen.value = true;
+}
+
+function openReviewEditor(video) {
+  editorVideo.value = video;
+  isReviewMode.value = true;
   isEditorOpen.value = true;
 }
 
 function closeBackgroundEditor() {
   isEditorOpen.value = false;
   editorVideo.value = null;
+  isReviewMode.value = false;
 }
 
 function openPublishModal(video) {
@@ -133,6 +147,19 @@ async function handleSaveBackgrounds(segments) {
     closeBackgroundEditor();
     // Автоматически запускаем рендер
     await startRender(editorVideo.value.id);
+  }
+}
+
+async function handleApproveAndContinue({ segments, backgroundMusicFilename }) {
+  if (!editorVideo.value) return;
+
+  const result = await approveVideo(
+    editorVideo.value.id,
+    segments,
+    backgroundMusicFilename
+  );
+  if (result) {
+    closeBackgroundEditor();
   }
 }
 

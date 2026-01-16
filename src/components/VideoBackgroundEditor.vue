@@ -14,7 +14,11 @@
       <div
         class="flex items-center justify-between p-4 border-b border-gray-800"
       >
-        <h2 class="text-xl font-bold text-white">Редактирование видео-фонов</h2>
+        <h2 class="text-xl font-bold text-white">
+          {{
+            isReviewMode ? "Проверка и одобрение" : "Редактирование видео-фонов"
+          }}
+        </h2>
         <button
           @click="close"
           class="p-2 hover:bg-gray-800 rounded-xl transition-colors"
@@ -100,9 +104,46 @@
                 </div>
               </div>
 
-              <div>
-                <h3 class="text-sm font-medium text-gray-400 mb-2">Текст</h3>
-                {{ localSegments[selectedSegmentIndex]?.text }}
+              <div class="flex-1">
+                <div class="flex items-center justify-between mb-2">
+                  <h3 class="text-sm font-medium text-gray-400">Текст</h3>
+                  <button
+                    v-if="!isEditingText"
+                    @click="startEditingText"
+                    class="p-1 hover:bg-gray-700 rounded transition-colors text-gray-400 hover:text-white"
+                    title="Редактировать текст"
+                  >
+                    <Pencil class="w-4 h-4" />
+                  </button>
+                </div>
+
+                <!-- Text editing mode -->
+                <div v-if="isEditingText" class="space-y-2">
+                  <textarea
+                    v-model="editingTextValue"
+                    class="w-full h-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                    placeholder="Введите текст сегмента..."
+                  ></textarea>
+                  <div class="flex gap-2">
+                    <button
+                      @click="saveTextEdit"
+                      class="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-sm text-white font-medium transition-colors"
+                    >
+                      Сохранить
+                    </button>
+                    <button
+                      @click="cancelTextEdit"
+                      class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-white font-medium transition-colors"
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Text display mode -->
+                <p v-else class="text-gray-300 text-sm leading-relaxed">
+                  {{ localSegments[selectedSegmentIndex]?.text }}
+                </p>
               </div>
             </div>
 
@@ -250,9 +291,47 @@
       <div
         class="flex items-center justify-between p-4 border-t border-gray-800"
       >
-        <p class="text-sm text-gray-400">
-          Изменено сегментов: {{ changedCount }}
-        </p>
+        <div class="flex items-center gap-4">
+          <p class="text-sm text-gray-400">Изменено: {{ changedCount }}</p>
+
+          <!-- Background music selector (only in review mode) -->
+          <div v-if="isReviewMode" class="flex items-center gap-2">
+            <Music class="w-4 h-4 text-gray-400" />
+            <select
+              v-model="selectedBackgroundMusic"
+              :disabled="isLoadingMusic"
+              class="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[200px]"
+            >
+              <option value="">Без музыки</option>
+              <option
+                v-for="music in backgroundMusicList"
+                :key="music.filename"
+                :value="music.filename"
+              >
+                {{ music.name }}
+              </option>
+            </select>
+
+            <!-- Play/Stop button -->
+            <button
+              v-if="selectedBackgroundMusic"
+              @click="toggleMusicPreview"
+              class="p-1.5 rounded-lg transition-colors"
+              :class="
+                isPlayingMusic
+                  ? 'bg-red-600 hover:bg-red-500 text-white'
+                  : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+              "
+              :title="isPlayingMusic ? 'Остановить' : 'Прослушать'"
+            >
+              <component
+                :is="isPlayingMusic ? StopCircle : Play"
+                class="w-4 h-4"
+              />
+            </button>
+          </div>
+        </div>
+
         <div class="flex gap-3">
           <button
             @click="close"
@@ -260,7 +339,20 @@
           >
             Отмена
           </button>
+
+          <!-- Approve button for review mode -->
           <button
+            v-if="isReviewMode"
+            @click="approveAndContinue"
+            class="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-500 rounded-xl text-white font-medium transition-colors"
+          >
+            <ThumbsUp class="w-4 h-4" />
+            Одобрить и продолжить
+          </button>
+
+          <!-- Save button for edit mode -->
+          <button
+            v-else
             @click="saveAndRender"
             :disabled="changedCount === 0"
             class="px-6 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-xl text-white font-medium transition-colors"
@@ -274,8 +366,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, reactive } from "vue";
-import { X, Search, Loader2, Check, Trash2 } from "lucide-vue-next";
+import { ref, computed, watch, reactive, onMounted } from "vue";
+import {
+  X,
+  Search,
+  Loader2,
+  Check,
+  Trash2,
+  Music,
+  ThumbsUp,
+  Pencil,
+  Play,
+  StopCircle,
+} from "lucide-vue-next";
 import api from "../api";
 
 interface VideoResult {
@@ -297,12 +400,20 @@ interface SourceResults {
   hasSearched: boolean;
 }
 
+interface MusicTrack {
+  filename: string;
+  url: string;
+  name: string;
+}
+
 const props = defineProps<{
   isOpen: boolean;
   video: any;
+  isReviewMode?: boolean;
+  fetchBackgroundMusic?: () => Promise<MusicTrack[]>;
 }>();
 
-const emit = defineEmits(["close", "save"]);
+const emit = defineEmits(["close", "save", "approve"]);
 
 const sources = [
   { id: "pexels", name: "Pexels" },
@@ -316,6 +427,15 @@ const searchQuery = ref("");
 const activeSource = ref("pexels");
 const verticalOnly = ref(true);
 const isSearching = ref(false);
+const isEditingText = ref(false);
+const editingTextValue = ref("");
+
+// Фоновая музыка
+const backgroundMusicList = ref<MusicTrack[]>([]);
+const selectedBackgroundMusic = ref<string>("");
+const isLoadingMusic = ref(false);
+const isPlayingMusic = ref(false);
+const audioPlayer = ref<HTMLAudioElement | null>(null);
 
 // Результаты поиска для каждого источника (сохраняются отдельно)
 const sourceResults = reactive<Record<string, SourceResults>>({
@@ -342,7 +462,7 @@ const hasSearchedInSource = computed(
 
 watch(
   () => props.isOpen,
-  (isOpen) => {
+  async (isOpen) => {
     if (isOpen && props.video?.segments) {
       const segments =
         typeof props.video.segments === "string"
@@ -352,6 +472,12 @@ watch(
       originalSegments.value = JSON.parse(JSON.stringify(segments));
       selectedSegmentIndex.value = null;
       searchQuery.value = "";
+      isEditingText.value = false;
+      editingTextValue.value = "";
+
+      // Устанавливаем текущую фоновую музыку
+      selectedBackgroundMusic.value = props.video.backgroundMusicFilename || "";
+
       // Сбрасываем результаты поиска при открытии модалки
       sourceResults.pexels = {
         videos: [],
@@ -367,6 +493,18 @@ watch(
         query: "",
         hasSearched: false,
       };
+
+      // Загружаем список фоновой музыки если в режиме review
+      if (props.isReviewMode && props.fetchBackgroundMusic) {
+        isLoadingMusic.value = true;
+        try {
+          backgroundMusicList.value = await props.fetchBackgroundMusic();
+        } catch (e) {
+          console.error("Failed to load background music:", e);
+        } finally {
+          isLoadingMusic.value = false;
+        }
+      }
     }
   }
 );
@@ -377,8 +515,23 @@ const changedCount = computed(() => {
     const original = originalSegments.value[i]?.stockVideo?.url;
     const current = localSegments.value[i]?.stockVideo?.url;
     if (original !== current) count++;
+
+    // Также считаем изменения текста
+    const originalText = originalSegments.value[i]?.text;
+    const currentText = localSegments.value[i]?.text;
+    if (originalText !== currentText) count++;
   }
   return count;
+});
+
+const hasAnyChanges = computed(() => {
+  if (changedCount.value > 0) return true;
+  if (
+    selectedBackgroundMusic.value !==
+    (props.video?.backgroundMusicFilename || "")
+  )
+    return true;
+  return false;
 });
 
 function getSegmentIcon(type: string) {
@@ -498,11 +651,74 @@ function removeVideo(index: number) {
   localSegments.value[index].stockVideo = null;
 }
 
+function toggleMusicPreview() {
+  if (isPlayingMusic.value) {
+    // Остановить
+    if (audioPlayer.value) {
+      audioPlayer.value.pause();
+      audioPlayer.value = null;
+    }
+    isPlayingMusic.value = false;
+  } else {
+    // Найти URL выбранной музыки и воспроизвести
+    const track = backgroundMusicList.value.find(
+      (m) => m.filename === selectedBackgroundMusic.value
+    );
+    if (track) {
+      audioPlayer.value = new Audio(track.url);
+      audioPlayer.value.volume = 0.5;
+      audioPlayer.value.play();
+      audioPlayer.value.onended = () => {
+        isPlayingMusic.value = false;
+        audioPlayer.value = null;
+      };
+      isPlayingMusic.value = true;
+    }
+  }
+}
+
+function stopMusicPreview() {
+  if (audioPlayer.value) {
+    audioPlayer.value.pause();
+    audioPlayer.value = null;
+  }
+  isPlayingMusic.value = false;
+}
+
 function close() {
+  isEditingText.value = false;
+  stopMusicPreview();
   emit("close");
+}
+
+function startEditingText() {
+  if (selectedSegmentIndex.value === null) return;
+  editingTextValue.value =
+    localSegments.value[selectedSegmentIndex.value].text || "";
+  isEditingText.value = true;
+}
+
+function saveTextEdit() {
+  if (selectedSegmentIndex.value === null) return;
+  localSegments.value[selectedSegmentIndex.value].text = editingTextValue.value;
+  isEditingText.value = false;
+}
+
+function cancelTextEdit() {
+  isEditingText.value = false;
+  editingTextValue.value = "";
 }
 
 async function saveAndRender() {
   emit("save", localSegments.value);
+  close();
+}
+
+async function approveAndContinue() {
+  emit("approve", {
+    segments: localSegments.value,
+    backgroundMusicFilename: selectedBackgroundMusic.value || null,
+  });
+  close();
 }
 </script>

@@ -120,30 +120,33 @@
       </div>
 
       <div class="flex items-center gap-2 pt-3 border-t border-gray-800">
+        <!-- Review & Edit button for AWAITING_REVIEW status -->
         <button
-          v-if="canEdit && !isEditing"
-          @click="startEditing"
-          class="p-2 rounded-xl hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
-          title="Редактировать текст"
+          v-if="video.status === 'AWAITING_REVIEW' && !isEditing"
+          @click="$emit('review', video)"
+          class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-xl text-sm font-medium text-white transition-colors"
         >
-          <Pencil class="w-4 h-4" />
+          <Eye class="w-4 h-4" />
+          <span>Проверить и одобрить</span>
         </button>
 
+        <!-- Edit backgrounds for non-review statuses -->
         <button
-          v-if="canEditBackgrounds && !isEditing"
-          @click="$emit('editBackgrounds', video)"
+          v-if="
+            canEditBackgrounds &&
+            !isEditing &&
+            video.status !== 'AWAITING_REVIEW'
+          "
+          @click="$emit('review', video)"
           class="p-2 rounded-xl hover:bg-gray-700 text-gray-400 hover:text-purple-400 transition-colors"
-          title="Редактировать видео-фоны"
+          title="Редактировать видео-фоны и текст"
         >
           <ImageIcon class="w-4 h-4" />
         </button>
 
+        <!-- Render button - only when audio is generated (progress.generateAudio === 'success') -->
         <button
-          v-if="
-            video.status === 'PENDING' &&
-            (video.segments || video.audioPath) &&
-            !isEditing
-          "
+          v-if="canRender && !isEditing"
           @click="$emit('render', video.id)"
           class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 rounded-xl text-sm font-medium text-white transition-colors"
         >
@@ -255,6 +258,8 @@ import {
   Image as ImageIcon,
   Youtube,
   StopCircle,
+  Eye,
+  ThumbsUp,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -270,9 +275,9 @@ const emit = defineEmits([
   "retry",
   "update",
   "retryFromStep",
-  "editBackgrounds",
   "publish",
   "stop",
+  "review",
 ]);
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -288,7 +293,17 @@ const canEdit = computed(() => {
 const canEditBackgrounds = computed(() => {
   return (
     props.video.segments &&
-    !["GENERATING_ASSETS", "RENDERING"].includes(props.video.status)
+    !["GENERATING_ASSETS", "RENDERING", "AWAITING_REVIEW"].includes(
+      props.video.status
+    )
+  );
+});
+
+const canRender = computed(() => {
+  return (
+    props.video.status === "PENDING" &&
+    props.video.progress?.generateAudio === "success" &&
+    !isEditing.value
   );
 });
 
@@ -344,6 +359,13 @@ const statusConfig = {
     icon: Sparkles,
     animation: "animate-pulse",
   },
+  AWAITING_REVIEW: {
+    color: "bg-purple-500",
+    badge: "bg-purple-500/20 text-purple-400",
+    text: "Проверка",
+    icon: Eye,
+    animation: "animate-pulse",
+  },
   RENDERING: {
     color: "bg-blue-500",
     badge: "bg-blue-500/20 text-blue-400",
@@ -380,13 +402,8 @@ const statusIconAnimation = computed(() => currentStatus.value.animation);
 const progressSteps = [
   { key: "generateScript", label: "Текст", shortLabel: "AI", icon: FileText },
   { key: "searchVideos", label: "Видео", shortLabel: "🔍", icon: Video },
+  { key: "awaitingReview", label: "Проверка", shortLabel: "👁️", icon: Eye },
   { key: "generateAudio", label: "Аудио", shortLabel: "🔊", icon: Volume2 },
-  {
-    key: "processSegments",
-    label: "Сегменты",
-    shortLabel: "⚙️",
-    icon: Sparkles,
-  },
   { key: "renderVideo", label: "Рендер", shortLabel: "🎬", icon: Film },
 ];
 

@@ -72,9 +72,9 @@
         @retry="$emit('retry', $event)"
         @update="(id, data) => $emit('update', id, data)"
         @retryFromStep="(id, step) => $emit('retryFromStep', id, step)"
-        @editBackgrounds="$emit('editBackgrounds', $event)"
         @publish="$emit('publish', $event)"
         @stop="$emit('stop', $event)"
+        @review="$emit('review', $event)"
       />
     </div>
   </div>
@@ -99,8 +99,8 @@ defineEmits([
   "retry",
   "update",
   "retryFromStep",
-  "editBackgrounds",
   "publish",
   "stop",
+  "review",
 ]);
 </script>
