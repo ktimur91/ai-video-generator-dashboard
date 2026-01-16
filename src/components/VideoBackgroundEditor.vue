@@ -28,58 +28,99 @@
       </div>
 
       <!-- Content -->
-      <div class="flex-1 overflow-hidden flex">
+      <div class="flex-1 overflow-hidden grid grid-rows-[auto_1fr]">
         <!-- Segments List -->
-        <div class="w-1/4 border-r border-gray-800 overflow-y-auto p-4">
-          <h3 class="text-sm font-medium text-gray-400 mb-3">Сегменты</h3>
-          <div class="space-y-2">
-            <button
-              v-for="(segment, index) in localSegments"
-              :key="index"
-              @click="selectSegment(index)"
-              :class="[
-                'w-full text-left p-3 rounded-xl transition-all',
-                selectedSegmentIndex === index
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700',
-              ]"
-            >
-              <div class="flex items-center gap-2">
-                <span class="text-lg">
-                  {{ getSegmentIcon(segment.type) }}
-                </span>
-                <div class="flex-1 min-w-0">
-                  <p class="font-medium truncate">
-                    {{ getSegmentLabel(segment, index) }}
-                  </p>
-                  <p class="text-xs opacity-70 truncate">
-                    {{ segment.text?.substring(0, 40) }}...
-                  </p>
-                </div>
-                <span
-                  v-if="segment.stockVideo?.url"
-                  class="text-green-400 text-xs"
-                >
-                  ✓
-                </span>
-                <span v-else class="text-red-400 text-xs">✗</span>
+        <div class="flex gap-3 border-b border-gray-800 overflow-x-auto p-4">
+          <button
+            v-for="(segment, index) in localSegments"
+            :key="index"
+            @click="selectSegment(index)"
+            :class="[
+              'w-full text-left py-1 px-2 rounded-xl transition-all',
+              selectedSegmentIndex === index
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700',
+            ]"
+          >
+            <div class="flex items-center gap-2">
+              <span class="text-lg">
+                {{ getSegmentIcon(segment.type) }}
+              </span>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium truncate">
+                  {{ getSegmentLabel(segment, index) }}
+                </p>
+                <!-- <p class="text-xs opacity-70 truncate">
+                  {{ segment.text?.substring(0, 40) }}...
+                </p> -->
               </div>
-            </button>
-          </div>
+              <span
+                v-if="segment.stockVideo?.url"
+                class="text-green-400 text-md"
+              >
+                ✓
+              </span>
+              <span v-else class="text-red-400 text-md">✗</span>
+            </div>
+          </button>
         </div>
 
         <!-- Video Search -->
-        <div class="flex-1 overflow-y-auto p-4">
-          <div v-if="selectedSegmentIndex !== null">
+        <div class="flex-1 overflow-y-auto">
+          <div
+            v-if="selectedSegmentIndex !== null"
+            class="grid grid-cols-[auto_1fr]"
+          >
             <!-- Current Video Preview -->
-            <div class="grid grid-cols-[auto_1fr] gap-5 mb-4">
-              <div>
-                <h3 class="text-sm font-medium text-gray-400 mb-2">
-                  Фоновое видео
-                </h3>
+            <div class="flex flex-col w-[240px] p-4 border-r border-gray-800">
+              <div class="flex flex-col gap-5 sticky top-4">
+                <!-- Text -->
+                <div class="flex flex-col">
+                  <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-medium text-gray-400">Текст</h3>
+                    <button
+                      v-if="!isEditingText"
+                      @click="startEditingText"
+                      class="p-1 hover:bg-gray-700 rounded transition-colors text-gray-400 hover:text-white"
+                      title="Редактировать текст"
+                    >
+                      <Pencil class="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <!-- Text editing mode -->
+                  <div v-if="isEditingText" class="space-y-2">
+                    <textarea
+                      v-model="editingTextValue"
+                      class="w-full h-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                      placeholder="Введите текст сегмента..."
+                    ></textarea>
+                    <div class="flex gap-2">
+                      <button
+                        @click="saveTextEdit"
+                        class="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-sm text-white font-medium transition-colors"
+                      >
+                        Сохранить
+                      </button>
+                      <button
+                        @click="cancelTextEdit"
+                        class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-white font-medium transition-colors"
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Text display mode -->
+                  <p v-else class="text-gray-300 text-sm leading-relaxed">
+                    {{ localSegments[selectedSegmentIndex]?.text }}
+                  </p>
+                </div>
+
+                <!-- Video Preview -->
                 <div
                   v-if="localSegments[selectedSegmentIndex]?.stockVideo?.url"
-                  class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[9/16] max-w-[200px]"
+                  class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[9/16] w-full"
                 >
                   <video
                     :src="localSegments[selectedSegmentIndex].stockVideo.url"
@@ -98,57 +139,15 @@
                 </div>
                 <div
                   v-else
-                  class="rounded-xl bg-gray-800 aspect-[9/16] w-[200px] flex items-center justify-center text-gray-500"
+                  class="rounded-xl bg-gray-800 aspect-[9/16] w-full flex items-center justify-center text-gray-500"
                 >
                   Нет видео
                 </div>
               </div>
-
-              <div class="flex-1">
-                <div class="flex items-center justify-between mb-2">
-                  <h3 class="text-sm font-medium text-gray-400">Текст</h3>
-                  <button
-                    v-if="!isEditingText"
-                    @click="startEditingText"
-                    class="p-1 hover:bg-gray-700 rounded transition-colors text-gray-400 hover:text-white"
-                    title="Редактировать текст"
-                  >
-                    <Pencil class="w-4 h-4" />
-                  </button>
-                </div>
-
-                <!-- Text editing mode -->
-                <div v-if="isEditingText" class="space-y-2">
-                  <textarea
-                    v-model="editingTextValue"
-                    class="w-full h-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                    placeholder="Введите текст сегмента..."
-                  ></textarea>
-                  <div class="flex gap-2">
-                    <button
-                      @click="saveTextEdit"
-                      class="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-sm text-white font-medium transition-colors"
-                    >
-                      Сохранить
-                    </button>
-                    <button
-                      @click="cancelTextEdit"
-                      class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-white font-medium transition-colors"
-                    >
-                      Отмена
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Text display mode -->
-                <p v-else class="text-gray-300 text-sm leading-relaxed">
-                  {{ localSegments[selectedSegmentIndex]?.text }}
-                </p>
-              </div>
             </div>
 
             <!-- Search -->
-            <div class="space-y-3">
+            <div class="space-y-3 p-4">
               <!-- Search Input -->
               <div class="flex gap-2">
                 <input
@@ -289,7 +288,7 @@
 
           <div
             v-else
-            class="flex items-center justify-center h-full text-gray-500"
+            class="flex items-center justify-center h-full text-gray-500 p-5"
           >
             Выберите сегмент слева для редактирования
           </div>
