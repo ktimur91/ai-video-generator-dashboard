@@ -1,7 +1,11 @@
 <template>
   <div class="min-h-screen bg-gray-950">
     <!-- Header -->
-    <AppHeader :status="apiStatus" @refresh="fetchVideos" />
+    <AppHeader
+      :status="apiStatus"
+      @refresh="fetchVideos"
+      @openVoiceSettings="openVoiceSettings"
+    />
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -66,6 +70,12 @@
       @close="closePublishModal"
       @published="handlePublished"
     />
+
+    <!-- Voice Settings Modal -->
+    <VoiceSettingsModal
+      :isOpen="isVoiceSettingsOpen"
+      @close="closeVoiceSettings"
+    />
   </div>
 </template>
 
@@ -77,6 +87,7 @@ import QuickCreate from "./components/QuickCreate.vue";
 import VideoGrid from "./components/VideoGrid.vue";
 import VideoBackgroundEditor from "./components/VideoBackgroundEditor.vue";
 import YouTubePublishModal from "./components/YouTubePublishModal.vue";
+import VoiceSettingsModal from "./components/VoiceSettingsModal.vue";
 import { useVideos } from "./composables/useVideos";
 
 const {
@@ -105,6 +116,17 @@ const isReviewMode = ref(false);
 // YouTube publish modal state
 const isPublishModalOpen = ref(false);
 const publishVideo = ref(null);
+
+// Voice settings modal state
+const isVoiceSettingsOpen = ref(false);
+
+function openVoiceSettings() {
+  isVoiceSettingsOpen.value = true;
+}
+
+function closeVoiceSettings() {
+  isVoiceSettingsOpen.value = false;
+}
 
 function openBackgroundEditor(video) {
   editorVideo.value = video;
@@ -150,13 +172,18 @@ async function handleSaveBackgrounds(segments) {
   }
 }
 
-async function handleApproveAndContinue({ segments, backgroundMusicFilename }) {
+async function handleApproveAndContinue({
+  segments,
+  backgroundMusicFilename,
+  voiceConfigId,
+}) {
   if (!editorVideo.value) return;
 
   const result = await approveVideo(
     editorVideo.value.id,
     segments,
-    backgroundMusicFilename
+    backgroundMusicFilename,
+    voiceConfigId
   );
   if (result) {
     closeBackgroundEditor();

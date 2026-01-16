@@ -15,6 +15,16 @@
 
         <!-- API Status -->
         <div class="flex items-center gap-2">
+          <!-- Voice Settings Button -->
+          <button
+            @click="$emit('openVoiceSettings')"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 transition-colors"
+            title="Настройки голосов"
+          >
+            <Mic class="w-4 h-4 text-purple-400" />
+            <span class="text-sm text-purple-400 hidden sm:inline">Голоса</span>
+          </button>
+
           <div
             :class="[
               'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium',
@@ -49,7 +59,7 @@
 
 <script setup>
 import { computed } from "vue";
-import { Video, RefreshCw } from "lucide-vue-next";
+import { Video, RefreshCw, Mic } from "lucide-vue-next";
 
 const props = defineProps({
   status: {
@@ -59,7 +69,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(["refresh"]);
+defineEmits(["refresh", "openVoiceSettings"]);
 
 const statusText = computed(() => {
   switch (props.status) {

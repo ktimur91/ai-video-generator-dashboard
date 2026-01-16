@@ -337,6 +337,27 @@
                 class="w-4 h-4"
               />
             </button>
+
+            <!-- Divider -->
+            <div class="w-px h-6 bg-gray-700 mx-2"></div>
+
+            <!-- Voice selector -->
+            <Mic class="w-4 h-4 text-purple-400" />
+            <select
+              v-model="selectedVoiceConfigId"
+              :disabled="isLoadingVoices"
+              class="px-3 py-1.5 bg-gray-800 border border-purple-700/50 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[180px]"
+            >
+              <option value="">Голос по умолчанию</option>
+              <option
+                v-for="voice in voiceConfigList"
+                :key="voice.id"
+                :value="voice.id"
+              >
+                {{ voice.name }}
+                <template v-if="voice.isDefault"> ⭐</template>
+              </option>
+            </select>
           </div>
         </div>
 
@@ -386,6 +407,7 @@ import {
   Pencil,
   Play,
   StopCircle,
+  Mic,
 } from "lucide-vue-next";
 import api from "../api";
 
@@ -413,6 +435,16 @@ interface MusicTrack {
   filename: string;
   url: string;
   name: string;
+}
+
+interface VoiceConfig {
+  id: string;
+  name: string;
+  voice: string;
+  rate: string;
+  pitch: string;
+  volume: string;
+  isDefault: boolean;
 }
 
 const props = defineProps<{
@@ -446,6 +478,11 @@ const selectedBackgroundMusic = ref<string>("");
 const isLoadingMusic = ref(false);
 const isPlayingMusic = ref(false);
 const audioPlayer = ref<HTMLAudioElement | null>(null);
+
+// Голоса озвучки
+const voiceConfigList = ref<VoiceConfig[]>([]);
+const selectedVoiceConfigId = ref<string>("");
+const isLoadingVoices = ref(false);
 
 // Результаты поиска для каждого источника (сохраняются отдельно)
 const sourceResults = reactive<Record<string, SourceResults>>({
@@ -529,6 +566,24 @@ watch(
           console.error("Failed to load background music:", e);
         } finally {
           isLoadingMusic.value = false;
+        }
+
+        // Загружаем список голосов
+        isLoadingVoices.value = true;
+        try {
+          const response = await api.get("/voices");
+          voiceConfigList.value = response.data.voices || [];
+          // Устанавливаем текущий голос видео или голос по умолчанию
+          if (props.video?.voiceConfigId) {
+            selectedVoiceConfigId.value = props.video.voiceConfigId;
+          } else {
+            const defaultVoice = voiceConfigList.value.find((v) => v.isDefault);
+            selectedVoiceConfigId.value = defaultVoice?.id || "";
+          }
+        } catch (e) {
+          console.error("Failed to load voices:", e);
+        } finally {
+          isLoadingVoices.value = false;
         }
       }
     }
@@ -758,6 +813,7 @@ async function approveAndContinue() {
   emit("approve", {
     segments: localSegments.value,
     backgroundMusicFilename: selectedBackgroundMusic.value || null,
+    voiceConfigId: selectedVoiceConfigId.value || null,
   });
   close();
 }

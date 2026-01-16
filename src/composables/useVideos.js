@@ -226,7 +226,12 @@ export function useVideos() {
   }
 
   // Одобрить видео и продолжить генерацию аудио
-  async function approveVideo(videoId, segments, backgroundMusicFilename) {
+  async function approveVideo(
+    videoId,
+    segments,
+    backgroundMusicFilename,
+    voiceConfigId
+  ) {
     try {
       error.value = null;
 
@@ -244,6 +249,7 @@ export function useVideos() {
       const response = await api.post(`/approve/${videoId}`, {
         segments,
         backgroundMusicFilename,
+        voiceConfigId,
       });
 
       // Обновляем видео в списке
