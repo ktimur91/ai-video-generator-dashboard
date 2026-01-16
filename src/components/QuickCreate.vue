@@ -54,6 +54,19 @@
           >
             Pixabay
           </button>
+          <button
+            type="button"
+            @click="videoSource = 'klipy'"
+            :class="[
+              'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              videoSource === 'klipy'
+                ? 'bg-pink-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700',
+            ]"
+            title="Клипы из фильмов и мемы"
+          >
+            Klipy
+          </button>
         </div>
       </div>
 

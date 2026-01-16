@@ -168,8 +168,11 @@
                 </button>
               </div>
 
-              <!-- Vertical Only Toggle -->
-              <div class="flex items-center gap-4">
+              <!-- Vertical Only Toggle (not for Klipy) -->
+              <div
+                v-if="activeSource !== 'klipy'"
+                class="flex items-center gap-4"
+              >
                 <label
                   class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer"
                 >
@@ -180,6 +183,12 @@
                   />
                   Только вертикальные видео
                 </label>
+              </div>
+
+              <!-- Klipy notice -->
+              <div v-else class="text-xs text-gray-500">
+                💡 Klipy — клипы из фильмов и мемы. Фильтр ориентации
+                недоступен.
               </div>
 
               <!-- Source Tabs -->
@@ -398,6 +407,7 @@ interface SourceResults {
   hasMore: boolean;
   query: string;
   hasSearched: boolean;
+  nextPos?: string | null; // Для cursor-based пагинации (Klipy)
 }
 
 interface MusicTrack {
@@ -418,6 +428,7 @@ const emit = defineEmits(["close", "save", "approve"]);
 const sources = [
   { id: "pexels", name: "Pexels" },
   { id: "pixabay", name: "Pixabay" },
+  { id: "klipy", name: "Klipy" },
 ];
 
 const localSegments = ref<any[]>([]);
@@ -452,6 +463,14 @@ const sourceResults = reactive<Record<string, SourceResults>>({
     hasMore: false,
     query: "",
     hasSearched: false,
+  },
+  klipy: {
+    videos: [],
+    page: 1,
+    hasMore: false,
+    query: "",
+    hasSearched: false,
+    nextPos: null,
   },
 });
 
@@ -492,6 +511,14 @@ watch(
         hasMore: false,
         query: "",
         hasSearched: false,
+      };
+      sourceResults.klipy = {
+        videos: [],
+        page: 1,
+        hasMore: false,
+        query: "",
+        hasSearched: false,
+        nextPos: null,
       };
 
       // Загружаем список фоновой музыки если в режиме review
@@ -590,20 +617,29 @@ async function searchVideos(resetPage = true) {
   if (resetPage) {
     sourceResults[source].page = 1;
     sourceResults[source].videos = [];
+    // Сбрасываем cursor для Klipy при новом поиске
+    if (source === "klipy") {
+      sourceResults[source].nextPos = null;
+    }
   }
 
   sourceResults[source].hasSearched = true;
   sourceResults[source].query = searchQuery.value;
 
   try {
-    const response = await api.get("/search-videos", {
-      params: {
-        q: searchQuery.value,
-        source: source,
-        page: sourceResults[source].page,
-        verticalOnly: verticalOnly.value.toString(),
-      },
-    });
+    const params: Record<string, any> = {
+      q: searchQuery.value,
+      source: source,
+      page: sourceResults[source].page,
+      verticalOnly: verticalOnly.value.toString(),
+    };
+
+    // Для Klipy используем cursor-based пагинацию
+    if (source === "klipy" && sourceResults[source].nextPos) {
+      params.pos = sourceResults[source].nextPos;
+    }
+
+    const response = await api.get("/search-videos", { params });
 
     const newVideos = response.data.videos || [];
     if (resetPage) {
@@ -615,6 +651,11 @@ async function searchVideos(resetPage = true) {
       ];
     }
     sourceResults[source].hasMore = response.data.hasMore || false;
+
+    // Сохраняем cursor для следующей страницы (Klipy)
+    if (source === "klipy" && response.data.nextPos) {
+      sourceResults[source].nextPos = response.data.nextPos;
+    }
   } catch (error) {
     console.error("Search error:", error);
     if (resetPage) {
