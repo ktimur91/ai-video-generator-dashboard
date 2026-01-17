@@ -183,13 +183,15 @@ export function useVideos() {
   }
 
   // Обновить сегменты видео (для ручной замены видео-фонов)
-  async function updateSegments(videoId, segments) {
+  // Теперь принимает объект с segments, voiceConfigId, backgroundMusicFilename, regenerateAudio
+  async function updateSegments(videoId, data) {
     try {
       error.value = null;
 
-      const response = await api.patch(`/videos/${videoId}/segments`, {
-        segments,
-      });
+      // Поддержка старого формата (просто массив сегментов)
+      const payload = Array.isArray(data) ? { segments: data } : data;
+
+      const response = await api.patch(`/videos/${videoId}/segments`, payload);
 
       // Обновляем видео в списке
       if (response.data.video) {
@@ -204,6 +206,24 @@ export function useVideos() {
       error.value = err.response?.data?.message || err.message;
       console.error("Failed to update segments:", err);
       return false;
+    }
+  }
+
+  // Перегенерация видео с новыми настройками голоса/музыки
+  async function regenerateVideo(videoId, data) {
+    try {
+      error.value = null;
+
+      const response = await api.post(`/videos/${videoId}/regenerate`, data);
+
+      // Обновляем список видео
+      await fetchVideos();
+
+      return response.data;
+    } catch (err) {
+      error.value = err.response?.data?.message || err.message;
+      console.error("Failed to regenerate video:", err);
+      return null;
     }
   }
 
@@ -343,6 +363,7 @@ export function useVideos() {
     retryVideo,
     updateVideo,
     updateSegments,
+    regenerateVideo,
     stopGeneration,
     approveVideo,
     fetchBackgroundMusic,

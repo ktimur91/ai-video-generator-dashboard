@@ -95,9 +95,9 @@
                 />
                 <span class="hidden sm:inline">{{ step.label }}</span>
               </button>
-              <!-- Stop button overlay for pending step -->
+              <!-- Stop button overlay for pending step (not for review step) -->
               <button
-                v-if="isStepPending(step.key)"
+                v-if="isStepPending(step.key) && step.key !== 'awaitingReview'"
                 @click.stop="$emit('stop', video.id)"
                 class="absolute -top-1 -right-1 p-1 bg-red-600 hover:bg-red-500 rounded-full shadow-lg transition-colors z-10"
                 title="Остановить генерацию"
@@ -171,6 +171,16 @@
         >
           <Play class="w-4 h-4" />
           <span>Воспроизвести</span>
+        </button>
+
+        <!-- Versions Button -->
+        <button
+          v-if="video.status === 'COMPLETED' && video.videoPath && !isEditing"
+          @click="$emit('versions', video)"
+          class="p-2 rounded-xl hover:bg-purple-500/20 text-gray-400 hover:text-purple-400 transition-colors"
+          title="Версии видео"
+        >
+          <Layers class="w-4 h-4" />
         </button>
 
         <!-- YouTube Publish Button -->
@@ -260,6 +270,7 @@ import {
   StopCircle,
   Eye,
   ThumbsUp,
+  Layers,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -278,6 +289,7 @@ const emit = defineEmits([
   "publish",
   "stop",
   "review",
+  "versions",
 ]);
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";

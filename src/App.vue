@@ -40,6 +40,7 @@
         @publish="openPublishModal"
         @stop="handleStop"
         @review="openReviewEditor"
+        @versions="openVersionsModal"
       />
     </main>
 
@@ -76,6 +77,14 @@
       :isOpen="isVoiceSettingsOpen"
       @close="closeVoiceSettings"
     />
+
+    <!-- Video Versions Modal -->
+    <VideoVersions
+      :isOpen="isVersionsModalOpen"
+      :video="versionsVideo"
+      @close="closeVersionsModal"
+      @activated="handleVersionActivated"
+    />
   </div>
 </template>
 
@@ -88,6 +97,7 @@ import VideoGrid from "./components/VideoGrid.vue";
 import VideoBackgroundEditor from "./components/VideoBackgroundEditor.vue";
 import YouTubePublishModal from "./components/YouTubePublishModal.vue";
 import VoiceSettingsModal from "./components/VoiceSettingsModal.vue";
+import VideoVersions from "./components/VideoVersions.vue";
 import { useVideos } from "./composables/useVideos";
 
 const {
@@ -103,6 +113,7 @@ const {
   retryVideo,
   updateVideo,
   updateSegments,
+  regenerateVideo,
   stopGeneration,
   approveVideo,
   fetchBackgroundMusic,
@@ -120,12 +131,30 @@ const publishVideo = ref(null);
 // Voice settings modal state
 const isVoiceSettingsOpen = ref(false);
 
+// Video versions modal state
+const isVersionsModalOpen = ref(false);
+const versionsVideo = ref(null);
+
 function openVoiceSettings() {
   isVoiceSettingsOpen.value = true;
 }
 
 function closeVoiceSettings() {
   isVoiceSettingsOpen.value = false;
+}
+
+function openVersionsModal(video) {
+  versionsVideo.value = video;
+  isVersionsModalOpen.value = true;
+}
+
+function closeVersionsModal() {
+  isVersionsModalOpen.value = false;
+  versionsVideo.value = null;
+}
+
+function handleVersionActivated() {
+  fetchVideos();
 }
 
 function openBackgroundEditor(video) {
@@ -161,15 +190,32 @@ function handlePublished() {
   fetchVideos();
 }
 
-async function handleSaveBackgrounds(segments) {
+async function handleSaveBackgrounds(data) {
   if (!editorVideo.value) return;
 
-  const success = await updateSegments(editorVideo.value.id, segments);
-  if (success) {
-    closeBackgroundEditor();
-    // Автоматически запускаем рендер
-    await startRender(editorVideo.value.id);
+  // data содержит { segments, voiceConfigId, backgroundMusicFilename, regenerateAudio }
+  closeBackgroundEditor();
+
+  if (data.regenerateAudio) {
+    // Нужна перегенерация аудио - вызываем regenerate
+    await regenerateVideo(editorVideo.value.id, {
+      segments: data.segments,
+      voiceConfigId: data.voiceConfigId,
+      backgroundMusicFilename: data.backgroundMusicFilename,
+    });
+  } else {
+    // Только изменились сегменты/музыка - обновляем и рендерим
+    const success = await updateSegments(editorVideo.value.id, {
+      segments: data.segments,
+      backgroundMusicFilename: data.backgroundMusicFilename,
+    });
+    if (success) {
+      await startRender(editorVideo.value.id);
+    }
   }
+
+  // Обновляем список видео чтобы увидеть статус
+  await fetchVideos();
 }
 
 async function handleApproveAndContinue({
@@ -179,14 +225,24 @@ async function handleApproveAndContinue({
 }) {
   if (!editorVideo.value) return;
 
-  const result = await approveVideo(
-    editorVideo.value.id,
-    segments,
-    backgroundMusicFilename,
-    voiceConfigId
-  );
-  if (result) {
+  // Если видео уже COMPLETED, используем regenerate вместо approve
+  if (editorVideo.value.status === "COMPLETED") {
+    await regenerateVideo(editorVideo.value.id, {
+      segments,
+      voiceConfigId,
+      backgroundMusicFilename,
+    });
     closeBackgroundEditor();
+  } else {
+    const result = await approveVideo(
+      editorVideo.value.id,
+      segments,
+      backgroundMusicFilename,
+      voiceConfigId
+    );
+    if (result) {
+      closeBackgroundEditor();
+    }
   }
 }
 

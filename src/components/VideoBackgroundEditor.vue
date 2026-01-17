@@ -358,6 +358,38 @@
                 <template v-if="voice.isDefault"> ⭐</template>
               </option>
             </select>
+
+            <!-- Voice Play/Stop button -->
+            <button
+              v-if="selectedVoiceConfigId"
+              @click="toggleVoicePreview"
+              :disabled="isGeneratingVoicePreview"
+              class="p-1.5 rounded-lg transition-colors"
+              :class="
+                isPlayingVoice
+                  ? 'bg-red-600 hover:bg-red-500 text-white'
+                  : isGeneratingVoicePreview
+                  ? 'bg-gray-600 text-gray-400 cursor-wait'
+                  : 'bg-purple-700 hover:bg-purple-600 text-white'
+              "
+              :title="
+                isPlayingVoice
+                  ? 'Остановить'
+                  : isGeneratingVoicePreview
+                  ? 'Генерация...'
+                  : 'Прослушать голос'
+              "
+            >
+              <Loader2
+                v-if="isGeneratingVoicePreview"
+                class="w-4 h-4 animate-spin"
+              />
+              <component
+                v-else
+                :is="isPlayingVoice ? StopCircle : Play"
+                class="w-4 h-4"
+              />
+            </button>
           </div>
         </div>
 
@@ -376,7 +408,7 @@
             class="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-500 rounded-xl text-white font-medium transition-colors"
           >
             <ThumbsUp class="w-4 h-4" />
-            Одобрить и продолжить
+            Готово
           </button>
 
           <!-- Save button for edit mode -->
@@ -386,7 +418,7 @@
             :disabled="changedCount === 0"
             class="px-6 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-xl text-white font-medium transition-colors"
           >
-            Сохранить и перерендерить
+            Сохранить
           </button>
         </div>
       </div>
@@ -483,6 +515,10 @@ const audioPlayer = ref<HTMLAudioElement | null>(null);
 const voiceConfigList = ref<VoiceConfig[]>([]);
 const selectedVoiceConfigId = ref<string>("");
 const isLoadingVoices = ref(false);
+const isPlayingVoice = ref(false);
+const isGeneratingVoicePreview = ref(false);
+const voiceAudioPlayer = ref<HTMLAudioElement | null>(null);
+const voicePreviewText = "Привет! Это пример голоса для вашего видео.";
 
 // Результаты поиска для каждого источника (сохраняются отдельно)
 const sourceResults = reactive<Record<string, SourceResults>>({
@@ -780,9 +816,62 @@ function stopMusicPreview() {
   isPlayingMusic.value = false;
 }
 
+async function toggleVoicePreview() {
+  if (isPlayingVoice.value) {
+    // Остановить
+    if (voiceAudioPlayer.value) {
+      voiceAudioPlayer.value.pause();
+      voiceAudioPlayer.value = null;
+    }
+    isPlayingVoice.value = false;
+  } else {
+    // Найти выбранный голос и сгенерировать превью
+    const voice = voiceConfigList.value.find(
+      (v) => v.id === selectedVoiceConfigId.value
+    );
+    if (!voice) return;
+
+    isGeneratingVoicePreview.value = true;
+    try {
+      const response = await api.post("/voices/preview", {
+        text: voicePreviewText,
+        voice: voice.voice,
+        rate: voice.rate,
+        pitch: voice.pitch,
+        volume: voice.volume,
+      });
+
+      if (response.data.url) {
+        const audioUrl = `http://localhost:3001${response.data.url}`;
+        voiceAudioPlayer.value = new Audio(audioUrl);
+        voiceAudioPlayer.value.volume = 0.8;
+        voiceAudioPlayer.value.play();
+        voiceAudioPlayer.value.onended = () => {
+          isPlayingVoice.value = false;
+          voiceAudioPlayer.value = null;
+        };
+        isPlayingVoice.value = true;
+      }
+    } catch (error) {
+      console.error("Failed to generate voice preview:", error);
+    } finally {
+      isGeneratingVoicePreview.value = false;
+    }
+  }
+}
+
+function stopVoicePreview() {
+  if (voiceAudioPlayer.value) {
+    voiceAudioPlayer.value.pause();
+    voiceAudioPlayer.value = null;
+  }
+  isPlayingVoice.value = false;
+}
+
 function close() {
   isEditingText.value = false;
   stopMusicPreview();
+  stopVoicePreview();
   emit("close");
 }
 
@@ -805,7 +894,16 @@ function cancelTextEdit() {
 }
 
 async function saveAndRender() {
-  emit("save", localSegments.value);
+  // Проверяем, изменился ли голос (нужна перегенерация аудио)
+  const voiceChanged =
+    selectedVoiceConfigId.value !== (props.video?.voiceConfigId || null);
+
+  emit("save", {
+    segments: localSegments.value,
+    voiceConfigId: selectedVoiceConfigId.value || null,
+    backgroundMusicFilename: selectedBackgroundMusic.value || null,
+    regenerateAudio: voiceChanged,
+  });
   close();
 }
 

@@ -75,6 +75,7 @@
         @publish="$emit('publish', $event)"
         @stop="$emit('stop', $event)"
         @review="$emit('review', $event)"
+        @versions="$emit('versions', $event)"
       />
     </div>
   </div>
@@ -102,5 +103,6 @@ defineEmits([
   "publish",
   "stop",
   "review",
+  "versions",
 ]);
 </script>
