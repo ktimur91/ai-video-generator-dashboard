@@ -83,27 +83,85 @@
           }}</span>
         </button>
       </div>
+    </form>
 
-      <!-- Tips -->
-      <div class="flex flex-wrap gap-2">
-        <span class="text-xs text-gray-500">Примеры:</span>
+    <!-- AI Рекомендации тем -->
+    <div class="mt-6 pt-4 border-t border-gray-800">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <Lightbulb class="w-4 h-4 text-yellow-400" />
+          <span class="text-sm font-medium text-gray-300">AI Рекомендации</span>
+        </div>
         <button
-          v-for="example in examples"
-          :key="example"
-          type="button"
-          @click="topic = example"
-          class="text-xs px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors"
+          v-if="!isLoadingSuggestions && suggestedTopics.length > 0"
+          @click="loadSuggestions()"
+          class="text-xs text-primary-400 hover:text-primary-300 transition-colors flex items-center gap-1"
         >
-          {{ example }}
+          <RefreshCw class="w-3 h-3" />
+          Обновить
         </button>
       </div>
-    </form>
+
+      <!-- Форма запроса тем -->
+      <div class="flex gap-2 mb-3">
+        <input
+          v-model="suggestionQuery"
+          type="text"
+          placeholder="Например: аниме, космос, психология..."
+          class="flex-1 px-3 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          @keyup.enter="loadSuggestions(suggestionQuery)"
+          :disabled="isLoadingSuggestions"
+        />
+        <button
+          @click="loadSuggestions(suggestionQuery)"
+          :disabled="isLoadingSuggestions"
+          class="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-white transition-colors flex items-center gap-2"
+        >
+          <Loader2 v-if="isLoadingSuggestions" class="w-4 h-4 animate-spin" />
+          <Search v-else class="w-4 h-4" />
+          <span class="hidden sm:inline">Найти темы</span>
+        </button>
+      </div>
+
+      <!-- Список тем -->
+      <div
+        v-if="isLoadingSuggestions"
+        class="flex items-center justify-center py-6"
+      >
+        <Loader2 class="w-6 h-6 text-primary-400 animate-spin" />
+        <span class="ml-2 text-sm text-gray-400">Генерирую идеи...</span>
+      </div>
+
+      <div v-else-if="suggestedTopics.length > 0" class="flex flex-wrap gap-2">
+        <button
+          v-for="(suggestedTopic, index) in suggestedTopics"
+          :key="index"
+          type="button"
+          @click="topic = suggestedTopic"
+          class="text-xs px-3 py-1.5 bg-gray-800 hover:bg-primary-600/30 hover:border-primary-500 border border-gray-700 rounded-lg text-gray-300 hover:text-white transition-all cursor-pointer"
+        >
+          {{ suggestedTopic }}
+        </button>
+      </div>
+
+      <div v-else class="text-center py-4 text-sm text-gray-500">
+        Нажмите "Найти темы" чтобы получить рекомендации
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { Sparkles, Wand2, Loader2 } from "lucide-vue-next";
+import { ref, onMounted } from "vue";
+import {
+  Sparkles,
+  Wand2,
+  Loader2,
+  Lightbulb,
+  RefreshCw,
+  Search,
+} from "lucide-vue-next";
+import { topicsApi } from "../api";
 
 const props = defineProps({
   isLoading: Boolean,
@@ -114,11 +172,27 @@ const emit = defineEmits(["create"]);
 const topic = ref("");
 const videoSource = ref("pexels");
 
-const examples = [
-  "3 лайфхака для утра",
-  "Почему Python популярен",
-  "Секреты продуктивности",
-];
+// AI рекомендации
+const suggestedTopics = ref([]);
+const isLoadingSuggestions = ref(false);
+const suggestionQuery = ref("");
+
+async function loadSuggestions(category = null) {
+  isLoadingSuggestions.value = true;
+  try {
+    const response = await topicsApi.getSuggestions(category || null);
+    suggestedTopics.value = response.data.topics || [];
+    // Очищаем поле после успешного запроса
+    if (category) {
+      suggestionQuery.value = "";
+    }
+  } catch (error) {
+    console.error("Failed to load topic suggestions:", error);
+    suggestedTopics.value = [];
+  } finally {
+    isLoadingSuggestions.value = false;
+  }
+}
 
 function handleSubmit() {
   if (topic.value.trim()) {
@@ -129,4 +203,9 @@ function handleSubmit() {
     topic.value = "";
   }
 }
+
+// Загружаем рекомендации при первой загрузке
+onMounted(() => {
+  loadSuggestions();
+});
 </script>

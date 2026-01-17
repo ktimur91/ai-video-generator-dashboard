@@ -43,4 +43,11 @@ export const generationApi = {
   stop: (videoId) => api.post(`/stop/${videoId}`),
 };
 
+// Topic suggestions API
+export const topicsApi = {
+  // Получить рекомендации тем (category опционально)
+  getSuggestions: (category = null) =>
+    api.post("/topic-suggestions", { category }),
+};
+
 export default api;
