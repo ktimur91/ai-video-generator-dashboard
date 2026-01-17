@@ -234,13 +234,13 @@
           <span>Генерация...</span>
         </div>
 
-        <div
+        <!-- <div
           v-else-if="!isEditing"
           class="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-700/50 rounded-xl text-sm font-medium text-gray-400"
         >
           <Clock class="w-4 h-4" />
           <span>Ожидание</span>
-        </div>
+        </div> -->
 
         <button
           v-if="!isEditing"
