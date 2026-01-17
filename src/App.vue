@@ -58,7 +58,6 @@
       :isOpen="isEditorOpen"
       :video="editorVideo"
       :isReviewMode="isReviewMode"
-      :fetchBackgroundMusic="fetchBackgroundMusic"
       @close="closeBackgroundEditor"
       @save="handleSaveBackgrounds"
       @approve="handleApproveAndContinue"
@@ -116,7 +115,6 @@ const {
   regenerateVideo,
   stopGeneration,
   approveVideo,
-  fetchBackgroundMusic,
 } = useVideos();
 
 // Background editor state
@@ -193,7 +191,7 @@ function handlePublished() {
 async function handleSaveBackgrounds(data) {
   if (!editorVideo.value) return;
 
-  // data содержит { segments, voiceConfigId, backgroundMusicFilename, regenerateAudio }
+  // data содержит { segments, voiceConfigId, backgroundMusicData, regenerateAudio }
   closeBackgroundEditor();
 
   if (data.regenerateAudio) {
@@ -201,13 +199,13 @@ async function handleSaveBackgrounds(data) {
     await regenerateVideo(editorVideo.value.id, {
       segments: data.segments,
       voiceConfigId: data.voiceConfigId,
-      backgroundMusicFilename: data.backgroundMusicFilename,
+      backgroundMusicData: data.backgroundMusicData,
     });
   } else {
     // Только изменились сегменты/музыка - обновляем и рендерим
     const success = await updateSegments(editorVideo.value.id, {
       segments: data.segments,
-      backgroundMusicFilename: data.backgroundMusicFilename,
+      backgroundMusicData: data.backgroundMusicData,
     });
     if (success) {
       await startRender(editorVideo.value.id);
@@ -220,7 +218,7 @@ async function handleSaveBackgrounds(data) {
 
 async function handleApproveAndContinue({
   segments,
-  backgroundMusicFilename,
+  backgroundMusicData,
   voiceConfigId,
 }) {
   if (!editorVideo.value) return;
@@ -230,14 +228,14 @@ async function handleApproveAndContinue({
     await regenerateVideo(editorVideo.value.id, {
       segments,
       voiceConfigId,
-      backgroundMusicFilename,
+      backgroundMusicData,
     });
     closeBackgroundEditor();
   } else {
     const result = await approveVideo(
       editorVideo.value.id,
       segments,
-      backgroundMusicFilename,
+      backgroundMusicData,
       voiceConfigId
     );
     if (result) {
@@ -247,7 +245,7 @@ async function handleApproveAndContinue({
 }
 
 async function handleCreate(data) {
-  await createVideo(data.topic, data.videoSource);
+  await createVideo(data);
 }
 
 async function handleRender(videoId) {

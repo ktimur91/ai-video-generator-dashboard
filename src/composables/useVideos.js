@@ -29,14 +29,23 @@ export function useVideos() {
   }
 
   // Создать новое видео (генерация сценария + аудио)
-  async function createVideo(topic, videoSource = "pexels") {
-    // Поддержка как строки, так и объекта { topic, videoSource }
+  async function createVideo(
+    topic,
+    videoSource = "pexels",
+    useAIVideoSelection = false,
+    useAIMusicSelection = false
+  ) {
+    // Поддержка как строки, так и объекта { topic, videoSource, useAIVideoSelection, useAIMusicSelection }
     let topicText = topic;
     let source = videoSource;
+    let aiVideoSelection = useAIVideoSelection;
+    let aiMusicSelection = useAIMusicSelection;
 
     if (typeof topic === "object" && topic !== null) {
       topicText = topic.topic;
       source = topic.videoSource || "pexels";
+      aiVideoSelection = topic.useAIVideoSelection || false;
+      aiMusicSelection = topic.useAIMusicSelection || false;
     }
 
     if (!topicText || !topicText.trim()) {
@@ -51,6 +60,8 @@ export function useVideos() {
       const response = await api.post("/generate", {
         topic: topicText,
         videoSource: source,
+        useAIVideoSelection: aiVideoSelection,
+        useAIMusicSelection: aiMusicSelection,
       });
 
       // Добавляем новое видео в начало списка
@@ -253,7 +264,7 @@ export function useVideos() {
   async function approveVideo(
     videoId,
     segments,
-    backgroundMusicFilename,
+    backgroundMusicData,
     voiceConfigId
   ) {
     try {
@@ -272,7 +283,7 @@ export function useVideos() {
 
       const response = await api.post(`/approve/${videoId}`, {
         segments,
-        backgroundMusicFilename,
+        backgroundMusicData,
         voiceConfigId,
       });
 
@@ -296,17 +307,6 @@ export function useVideos() {
 
       console.error("Failed to approve video:", err);
       return null;
-    }
-  }
-
-  // Получить список доступной фоновой музыки
-  async function fetchBackgroundMusic() {
-    try {
-      const response = await api.get("/background-music");
-      return response.data.music || [];
-    } catch (err) {
-      console.error("Failed to fetch background music:", err);
-      return [];
     }
   }
 
@@ -370,7 +370,6 @@ export function useVideos() {
     regenerateVideo,
     stopGeneration,
     approveVideo,
-    fetchBackgroundMusic,
     checkApiStatus,
     startPolling,
     stopPolling,

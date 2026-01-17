@@ -50,4 +50,29 @@ export const topicsApi = {
     api.post("/topic-suggestions", { category }),
 };
 
+// Music API (Jamendo)
+export const musicApi = {
+  // Поиск музыки
+  search: (params = {}) => api.get("/music/search", { params }),
+
+  // Получить трек по ID
+  getTrack: (id) => api.get(`/music/track/${id}`),
+
+  // Поиск музыки для темы
+  searchForTopic: (params) => api.post("/music/search-for-topic", params),
+
+  // Популярные треки по жанру
+  getPopular: (genre, limit = 10) =>
+    api.get(`/music/popular/${genre}`, { params: { limit } }),
+
+  // Рекомендуемая музыка для типа темы
+  getRecommended: (theme) => api.get(`/music/recommended/${theme}`),
+
+  // Список жанров
+  getGenres: () => api.get("/music/genres"),
+
+  // Список настроений
+  getMoods: () => api.get("/music/moods"),
+};
+
 export default api;

@@ -70,6 +70,53 @@
         </div>
       </div>
 
+      <!-- AI-выбор видео -->
+      <div class="flex items-center gap-3">
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            v-model="useAIVideoSelection"
+            class="sr-only peer"
+            :disabled="videoSource === 'klipy'"
+          />
+          <div
+            class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"
+          ></div>
+          <span
+            class="ms-3 text-sm font-medium text-gray-300"
+            :class="{ 'opacity-50': videoSource === 'klipy' }"
+          >
+            🎬 AI-выбор видео
+          </span>
+        </label>
+        <span
+          class="text-xs text-gray-500"
+          :class="{ 'opacity-50': videoSource === 'klipy' }"
+        >
+          (GPT-4o анализирует превью и выбирает подходящее)
+        </span>
+      </div>
+
+      <!-- AI-выбор музыки -->
+      <div class="flex items-center gap-3">
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            v-model="useAIMusicSelection"
+            class="sr-only peer"
+          />
+          <div
+            class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"
+          ></div>
+          <span class="ms-3 text-sm font-medium text-gray-300">
+            🎵 AI-выбор музыки
+          </span>
+        </label>
+        <span class="text-xs text-gray-500">
+          (GPT-4o-mini анализирует метаданные треков)
+        </span>
+      </div>
+
       <div class="flex items-center gap-3">
         <button
           type="submit"
@@ -171,6 +218,8 @@ const emit = defineEmits(["create"]);
 
 const topic = ref("");
 const videoSource = ref("pexels");
+const useAIVideoSelection = ref(false);
+const useAIMusicSelection = ref(false);
 
 // AI рекомендации
 const suggestedTopics = ref([]);
@@ -199,13 +248,16 @@ function handleSubmit() {
     emit("create", {
       topic: topic.value.trim(),
       videoSource: videoSource.value,
+      useAIVideoSelection:
+        useAIVideoSelection.value && videoSource.value !== "klipy",
+      useAIMusicSelection: useAIMusicSelection.value,
     });
     topic.value = "";
   }
 }
 
 // Загружаем рекомендации при первой загрузке
-onMounted(() => {
-  loadSuggestions();
-});
+// onMounted(() => {
+//   loadSuggestions();
+// });
 </script>

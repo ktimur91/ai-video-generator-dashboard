@@ -300,29 +300,37 @@
         class="flex items-center justify-between p-4 border-t border-gray-800"
       >
         <div class="flex items-center gap-4">
-          <p class="text-sm text-gray-400">Изменено: {{ changedCount }}</p>
+          <!-- <p class="text-sm text-gray-400">Изменено: {{ changedCount }}</p> -->
 
           <!-- Background music selector (only in review mode) -->
           <div v-if="isReviewMode" class="flex items-center gap-2">
             <Music class="w-4 h-4 text-gray-400" />
-            <select
-              v-model="selectedBackgroundMusic"
-              :disabled="isLoadingMusic"
-              class="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[200px]"
+
+            <!-- Current selected music display -->
+            <div
+              class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg min-w-[200px]"
             >
-              <option value="">Без музыки</option>
-              <option
-                v-for="music in backgroundMusicList"
-                :key="music.filename"
-                :value="music.filename"
+              <span
+                v-if="selectedMusicTrack"
+                class="text-sm text-white truncate max-w-[180px]"
               >
-                {{ music.name }}
-              </option>
-            </select>
+                {{ selectedMusicTrack.name }}
+              </span>
+              <span v-else class="text-sm text-gray-500">Без музыки</span>
+            </div>
+
+            <!-- Open music library button -->
+            <button
+              @click="isMusicModalOpen = true"
+              class="p-1.5 bg-primary-600 hover:bg-primary-500 rounded-lg transition-colors"
+              title="Открыть библиотеку музыки"
+            >
+              <Library class="w-4 h-4 text-white" />
+            </button>
 
             <!-- Play/Stop button -->
             <button
-              v-if="selectedBackgroundMusic"
+              v-if="selectedMusicTrack"
               @click="toggleMusicPreview"
               class="p-1.5 rounded-lg transition-colors"
               :class="
@@ -336,6 +344,16 @@
                 :is="isPlayingMusic ? StopCircle : Play"
                 class="w-4 h-4"
               />
+            </button>
+
+            <!-- Clear music button -->
+            <button
+              v-if="selectedMusicTrack"
+              @click="clearMusicSelection"
+              class="p-1.5 bg-gray-700 hover:bg-red-600 rounded-lg transition-colors"
+              title="Убрать музыку"
+            >
+              <X class="w-4 h-4 text-gray-300" />
             </button>
 
             <!-- Divider -->
@@ -424,6 +442,14 @@
       </div>
     </div>
   </div>
+
+  <!-- Music Selector Modal -->
+  <MusicSelectorModal
+    :is-open="isMusicModalOpen"
+    :current-music="selectedMusicTrack"
+    @close="isMusicModalOpen = false"
+    @select="handleMusicSelect"
+  />
 </template>
 
 <script setup lang="ts">
@@ -440,8 +466,10 @@ import {
   Play,
   StopCircle,
   Mic,
+  Library,
 } from "lucide-vue-next";
 import api from "../api";
+import MusicSelectorModal from "./MusicSelectorModal.vue";
 
 interface VideoResult {
   id: string | number;
@@ -464,9 +492,21 @@ interface SourceResults {
 }
 
 interface MusicTrack {
-  filename: string;
-  url: string;
+  id: string;
   name: string;
+  artist: string;
+  artistId: string;
+  album: string;
+  albumId: string;
+  duration: number;
+  audioUrl: string;
+  downloadUrl: string;
+  imageUrl: string;
+  pageUrl: string;
+  genres?: string[];
+  moods?: string[];
+  speed?: string;
+  isInstrumental?: boolean;
 }
 
 interface VoiceConfig {
@@ -483,7 +523,6 @@ const props = defineProps<{
   isOpen: boolean;
   video: any;
   isReviewMode?: boolean;
-  fetchBackgroundMusic?: () => Promise<MusicTrack[]>;
 }>();
 
 const emit = defineEmits(["close", "save", "approve"]);
@@ -505,9 +544,8 @@ const isEditingText = ref(false);
 const editingTextValue = ref("");
 
 // Фоновая музыка
-const backgroundMusicList = ref<MusicTrack[]>([]);
-const selectedBackgroundMusic = ref<string>("");
-const isLoadingMusic = ref(false);
+const selectedMusicTrack = ref<MusicTrack | null>(null);
+const isMusicModalOpen = ref(false);
 const isPlayingMusic = ref(false);
 const audioPlayer = ref<HTMLAudioElement | null>(null);
 
@@ -566,8 +604,21 @@ watch(
       isEditingText.value = false;
       editingTextValue.value = "";
 
-      // Устанавливаем текущую фоновую музыку
-      selectedBackgroundMusic.value = props.video.backgroundMusicFilename || "";
+      // Устанавливаем текущую фоновую музыку из backgroundMusicData
+      if (props.video.backgroundMusicData) {
+        try {
+          const musicData =
+            typeof props.video.backgroundMusicData === "string"
+              ? JSON.parse(props.video.backgroundMusicData)
+              : props.video.backgroundMusicData;
+          selectedMusicTrack.value = musicData;
+        } catch (e) {
+          console.error("Failed to parse background music data:", e);
+          selectedMusicTrack.value = null;
+        }
+      } else {
+        selectedMusicTrack.value = null;
+      }
 
       // Сбрасываем результаты поиска при открытии модалки
       sourceResults.pexels = {
@@ -593,18 +644,8 @@ watch(
         nextPos: null,
       };
 
-      // Загружаем список фоновой музыки если в режиме review
-      if (props.isReviewMode && props.fetchBackgroundMusic) {
-        isLoadingMusic.value = true;
-        try {
-          backgroundMusicList.value = await props.fetchBackgroundMusic();
-        } catch (e) {
-          console.error("Failed to load background music:", e);
-        } finally {
-          isLoadingMusic.value = false;
-        }
-
-        // Загружаем список голосов
+      // Загружаем список голосов если в режиме review
+      if (props.isReviewMode) {
         isLoadingVoices.value = true;
         try {
           const response = await api.get("/voices");
@@ -643,11 +684,16 @@ const changedCount = computed(() => {
 
 const hasAnyChanges = computed(() => {
   if (changedCount.value > 0) return true;
-  if (
-    selectedBackgroundMusic.value !==
-    (props.video?.backgroundMusicFilename || "")
-  )
-    return true;
+
+  // Проверяем изменение музыки
+  const originalMusicId = props.video?.backgroundMusicData
+    ? typeof props.video.backgroundMusicData === "string"
+      ? JSON.parse(props.video.backgroundMusicData)?.id
+      : props.video.backgroundMusicData?.id
+    : null;
+  const currentMusicId = selectedMusicTrack.value?.id || null;
+
+  if (originalMusicId !== currentMusicId) return true;
   return false;
 });
 
@@ -791,14 +837,18 @@ function toggleMusicPreview() {
     }
     isPlayingMusic.value = false;
   } else {
-    // Найти URL выбранной музыки и воспроизвести
-    const track = backgroundMusicList.value.find(
-      (m) => m.filename === selectedBackgroundMusic.value
-    );
-    if (track) {
-      audioPlayer.value = new Audio(track.url);
+    // Воспроизвести выбранный трек (поддержка старого формата url и нового audioUrl)
+    const audioUrl =
+      selectedMusicTrack.value?.audioUrl ||
+      selectedMusicTrack.value?.url ||
+      selectedMusicTrack.value?.audio;
+
+    if (audioUrl) {
+      audioPlayer.value = new Audio(audioUrl);
       audioPlayer.value.volume = 0.5;
-      audioPlayer.value.play();
+      audioPlayer.value.play().catch((err) => {
+        console.error("[Music Preview] Play error:", err);
+      });
       audioPlayer.value.onended = () => {
         isPlayingMusic.value = false;
         audioPlayer.value = null;
@@ -814,6 +864,18 @@ function stopMusicPreview() {
     audioPlayer.value = null;
   }
   isPlayingMusic.value = false;
+}
+
+function handleMusicSelect(track: MusicTrack) {
+  selectedMusicTrack.value = track;
+  isMusicModalOpen.value = false;
+  // Останавливаем воспроизведение если играло
+  stopMusicPreview();
+}
+
+function clearMusicSelection() {
+  selectedMusicTrack.value = null;
+  stopMusicPreview();
 }
 
 async function toggleVoicePreview() {
@@ -901,7 +963,7 @@ async function saveAndRender() {
   emit("save", {
     segments: localSegments.value,
     voiceConfigId: selectedVoiceConfigId.value || null,
-    backgroundMusicFilename: selectedBackgroundMusic.value || null,
+    backgroundMusicData: selectedMusicTrack.value || null,
     regenerateAudio: voiceChanged,
   });
   close();
@@ -910,7 +972,7 @@ async function saveAndRender() {
 async function approveAndContinue() {
   emit("approve", {
     segments: localSegments.value,
-    backgroundMusicFilename: selectedBackgroundMusic.value || null,
+    backgroundMusicData: selectedMusicTrack.value || null,
     voiceConfigId: selectedVoiceConfigId.value || null,
   });
   close();
