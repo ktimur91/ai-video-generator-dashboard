@@ -74,17 +74,25 @@
             <div class="relative flex-1">
               <button
                 @click="handleStepClick(index + 1)"
-                :disabled="!canRetryFromStep && !isStepPending(step.key)"
+                :disabled="
+                  step.key === 'awaitingReview' ||
+                  isStepWaiting(step.key) ||
+                  (!canRetryFromStep && !isStepPending(step.key))
+                "
                 :class="[
                   'w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium justify-center transition-all',
                   getStepState(step.key).bgColor,
                   getStepState(step.key).color,
-                  canRetryFromStep
+                  canRetryFromStep &&
+                  step.key !== 'awaitingReview' &&
+                  !isStepWaiting(step.key)
                     ? 'hover:ring-2 hover:ring-primary-500 cursor-pointer'
                     : 'cursor-default',
                 ]"
                 :title="
-                  canRetryFromStep
+                  canRetryFromStep &&
+                  step.key !== 'awaitingReview' &&
+                  !isStepWaiting(step.key)
                     ? 'Перезапустить с: ' + step.label
                     : step.label
                 "
@@ -321,8 +329,9 @@ const canRender = computed(() => {
 
 const canRetryFromStep = computed(() => {
   return (
-    ["FAILED", "COMPLETED", "PENDING"].includes(props.video.status) &&
-    !isEditing.value
+    ["FAILED", "COMPLETED", "PENDING", "AWAITING_REVIEW"].includes(
+      props.video.status
+    ) && !isEditing.value
   );
 });
 
@@ -354,6 +363,11 @@ function handleStepClick(stepNumber) {
 
 function isStepPending(stepKey) {
   return props.video.progress?.[stepKey] === "pending";
+}
+
+function isStepWaiting(stepKey) {
+  const state = props.video.progress?.[stepKey];
+  return !state || state === "waiting";
 }
 
 const statusConfig = {
@@ -448,7 +462,18 @@ const stepStateConfig = {
 
 function getStepState(stepKey) {
   const state = props.video.progress?.[stepKey] || "waiting";
-  return stepStateConfig[state] || stepStateConfig.waiting;
+  const config = stepStateConfig[state] || stepStateConfig.waiting;
+
+  // Для шага "Проверка" (awaitingReview) с pending - показываем Clock без анимации
+  if (stepKey === "awaitingReview" && state === "pending") {
+    return {
+      ...config,
+      icon: Clock,
+      animation: "",
+    };
+  }
+
+  return config;
 }
 
 function formatDate(dateString) {

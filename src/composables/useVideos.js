@@ -124,7 +124,8 @@ export function useVideos() {
 
   // Повторить генерацию для FAILED видео
   // fromStep: 1 = скрипт, 2 = аудио, 3 = видео, undefined = автоматически
-  async function retryVideo(videoId, fromStep) {
+  // videoSource: 'pexels' | 'pixabay' | 'klipy'
+  async function retryVideo(videoId, fromStep, videoSource = "pexels") {
     try {
       error.value = null;
 
@@ -134,7 +135,10 @@ export function useVideos() {
         video.status = "GENERATING_ASSETS";
       }
 
-      const response = await api.post(`/retry/${videoId}`, { fromStep });
+      const response = await api.post(`/retry/${videoId}`, {
+        fromStep,
+        videoSource,
+      });
 
       // Обновляем видео в списке
       if (response.data.video) {
