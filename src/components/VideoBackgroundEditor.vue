@@ -72,82 +72,195 @@
             class="grid grid-cols-[auto_1fr]"
           >
             <!-- Current Video Preview -->
-            <div class="flex flex-col w-[240px] p-4 border-r border-gray-800">
-              <div class="flex flex-col gap-5 sticky top-4">
-                <!-- Text -->
-                <div class="flex flex-col">
-                  <div class="flex items-center justify-between mb-2">
-                    <h3 class="text-sm font-medium text-gray-400">Текст</h3>
-                    <button
-                      v-if="!isEditingText"
-                      @click="startEditingText"
-                      class="p-1 hover:bg-gray-700 rounded transition-colors text-gray-400 hover:text-white"
-                      title="Редактировать текст"
-                    >
-                      <Pencil class="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <!-- Text editing mode -->
-                  <div v-if="isEditingText" class="space-y-2">
-                    <textarea
-                      v-model="editingTextValue"
-                      class="w-full h-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                      placeholder="Введите текст сегмента..."
-                    ></textarea>
-                    <div class="flex gap-2">
-                      <button
-                        @click="saveTextEdit"
-                        class="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-sm text-white font-medium transition-colors"
-                      >
-                        Сохранить
-                      </button>
-                      <button
-                        @click="cancelTextEdit"
-                        class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-white font-medium transition-colors"
-                      >
-                        Отмена
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Text display mode -->
-                  <p v-else class="text-gray-300 text-sm leading-relaxed">
-                    {{ localSegments[selectedSegmentIndex]?.text }}
-                  </p>
-                </div>
-
-                <!-- Video Preview -->
-                <div
-                  v-if="localSegments[selectedSegmentIndex]?.stockVideo?.url"
-                  class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[9/16] w-full"
-                >
-                  <video
-                    :src="localSegments[selectedSegmentIndex].stockVideo.url"
-                    class="w-full h-full object-cover"
-                    muted
-                    loop
-                    autoplay
-                    playsinline
-                  />
+            <div
+              class="flex flex-col w-[340px] h-full gap-5 p-4 border-r border-gray-800 overflow-y-auto"
+            >
+              <!-- Text -->
+              <div class="flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                  <h3 class="text-sm font-medium text-gray-400">Текст</h3>
                   <button
-                    @click="removeVideo(selectedSegmentIndex)"
-                    class="absolute top-2 right-2 p-1 bg-red-600 rounded-lg hover:bg-red-500"
+                    v-if="!isEditingText"
+                    @click="startEditingText"
+                    class="p-1 hover:bg-gray-700 rounded transition-colors text-gray-400 hover:text-white"
+                    title="Редактировать текст"
                   >
-                    <Trash2 class="w-4 h-4 text-white" />
+                    <Pencil class="w-4 h-4" />
                   </button>
                 </div>
+
+                <!-- Text editing mode -->
+                <div v-if="isEditingText" class="space-y-2">
+                  <textarea
+                    v-model="editingTextValue"
+                    class="w-full h-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                    placeholder="Введите текст сегмента..."
+                  ></textarea>
+                  <div class="flex gap-2">
+                    <button
+                      @click="saveTextEdit"
+                      class="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-sm text-white font-medium transition-colors"
+                    >
+                      Сохранить
+                    </button>
+                    <button
+                      @click="cancelTextEdit"
+                      class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-white font-medium transition-colors"
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Text display mode -->
+                <p v-else class="text-gray-300 text-sm leading-relaxed">
+                  {{ localSegments[selectedSegmentIndex]?.text }}
+                </p>
+
+                <!-- Estimated Duration -->
+                <p class="text-xs text-gray-500 mt-2">
+                  ⏱ ~{{
+                    localSegments[selectedSegmentIndex]?.estimatedDuration ||
+                    "?"
+                  }}
+                  сек
+                </p>
+              </div>
+
+              <!-- Multiple Videos Preview -->
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-medium text-gray-400">Видео фоны</h3>
+                  <span class="text-xs text-gray-500">
+                    {{ currentSegmentVideos.length }} видео
+                  </span>
+                </div>
+
+                <!-- Video List with Drag & Drop -->
+                <draggable
+                  v-if="currentSegmentVideos.length > 0"
+                  v-model="currentSegmentVideosList"
+                  item-key="id"
+                  handle=".drag-handle"
+                  ghost-class="opacity-50"
+                  animation="200"
+                  class="space-y-2"
+                >
+                  <template #item="{ element: video, index: vIdx }">
+                    <div
+                      class="relative rounded-xl overflow-hidden bg-gray-800 group"
+                    >
+                      <div class="flex gap-2">
+                        <!-- Video thumbnail -->
+                        <div class="relative w-20 h-24 flex-shrink-0">
+                          <video
+                            :src="video.url"
+                            class="w-full h-full object-cover"
+                            muted
+                            loop
+                            playsinline
+                            @mouseenter="
+                              ($event.target as HTMLVideoElement).play()
+                            "
+                            @mouseleave="
+                              ($event.target as HTMLVideoElement).pause()
+                            "
+                          />
+                        </div>
+
+                        <!-- Video info & controls -->
+                        <div
+                          class="flex-1 py-1 pr-2 flex flex-col justify-between"
+                        >
+                          <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-400">
+                              Видео: {{ video.duration }} сек.
+                            </span>
+
+                            <div class="flex items-center gap-2">
+                              <!-- Remove video -->
+                              <button
+                                @click="removeVideoFromSegment(vIdx)"
+                                class="p-1.5 bg-red-600/20 hover:bg-red-600 rounded-lg transition-colors group"
+                                title="Удалить видео"
+                              >
+                                <Trash2
+                                  class="w-4 h-4 text-red-400 group-hover:text-white"
+                                />
+                              </button>
+
+                              <!-- Drag handle -->
+                              <button
+                                class="drag-handle p-1.5 bg-gray-700/20 hover:bg-gray-700 cursor-grab active:cursor-grabbing rounded-lg transition-colors group"
+                                title="Переместить видео"
+                              >
+                                <GripVertical class="w-4 h-4 text-gray-500" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <!-- Percent slider -->
+                          <div class="flex items-center gap-2 pr-2">
+                            <input
+                              type="range"
+                              :value="video.percent"
+                              @input="updateVideoPercent(vIdx, $event)"
+                              min="10"
+                              max="100"
+                              class="flex-1 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                            />
+                            <span
+                              class="text-xs text-primary-400 w-8 text-right"
+                            >
+                              {{ video.percent }}%
+                            </span>
+                          </div>
+
+                          <!-- Approx seconds -->
+                          <span class="text-xs text-gray-500">
+                            Будет показано: ~{{
+                              getVideoSeconds(video.percent)
+                            }}
+                            сек.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </draggable>
+
+                <!-- Empty state -->
                 <div
                   v-else
-                  class="rounded-xl bg-gray-800 aspect-[9/16] w-full flex items-center justify-center text-gray-500"
+                  class="rounded-xl bg-gray-800 aspect-[9/16] w-full flex items-center justify-center text-gray-500 text-sm"
                 >
-                  Нет видео
+                  Нет видео<br />Выберите справа →
+                </div>
+
+                <!-- Total percent indicator -->
+                <div
+                  v-if="currentSegmentVideos.length > 0"
+                  class="flex items-center justify-between text-xs"
+                >
+                  <span class="text-gray-500">Всего:</span>
+                  <span
+                    :class="
+                      totalPercent === 100
+                        ? 'text-green-400'
+                        : 'text-yellow-400'
+                    "
+                  >
+                    {{ totalPercent }}%
+                    <span v-if="totalPercent !== 100" class="text-yellow-400"
+                      >(должно быть 100%)</span
+                    >
+                  </span>
                 </div>
               </div>
             </div>
 
             <!-- Search -->
-            <div class="space-y-3 p-4">
+            <div class="space-y-3 p-4 overflow-y-auto">
               <!-- Search Input -->
               <div class="flex gap-2">
                 <input
@@ -467,7 +580,9 @@ import {
   StopCircle,
   Mic,
   Library,
+  GripVertical,
 } from "lucide-vue-next";
+import draggable from "vuedraggable";
 import api from "../api";
 import MusicSelectorModal from "./MusicSelectorModal.vue";
 
@@ -588,6 +703,104 @@ const currentSourceResults = computed(() => sourceResults[activeSource.value]);
 const hasSearchedInSource = computed(
   () => currentSourceResults.value.hasSearched
 );
+
+// Computed для работы с несколькими видео
+const currentSegmentVideos = computed(() => {
+  if (selectedSegmentIndex.value === null) return [];
+  const segment = localSegments.value[selectedSegmentIndex.value];
+  // Поддержка нового формата stockVideos и старого stockVideo
+  if (segment?.stockVideos && segment.stockVideos.length > 0) {
+    return segment.stockVideos;
+  }
+  // Обратная совместимость со старым форматом
+  if (segment?.stockVideo) {
+    return [{ ...segment.stockVideo, percent: 100 }];
+  }
+  return [];
+});
+
+// Writable computed для vuedraggable v-model
+const currentSegmentVideosList = computed({
+  get() {
+    return currentSegmentVideos.value;
+  },
+  set(newList: any[]) {
+    if (selectedSegmentIndex.value === null) return;
+    const segment = localSegments.value[selectedSegmentIndex.value];
+    segment.stockVideos = newList;
+    // Обновляем stockVideo для обратной совместимости
+    segment.stockVideo = newList.length > 0 ? newList[0] : null;
+  },
+});
+
+const totalPercent = computed(() => {
+  return currentSegmentVideos.value.reduce(
+    (sum, v) => sum + (v.percent || 0),
+    0
+  );
+});
+
+// Функция для получения примерных секунд по проценту
+function getVideoSeconds(percent: number): string {
+  if (selectedSegmentIndex.value === null) return "?";
+  const segment = localSegments.value[selectedSegmentIndex.value];
+  const duration = segment?.estimatedDuration || segment?.audioDuration || 5;
+  return ((duration * percent) / 100).toFixed(1);
+}
+
+// Обновить процент видео
+function updateVideoPercent(videoIndex: number, event: Event) {
+  if (selectedSegmentIndex.value === null) return;
+  const target = event.target as HTMLInputElement;
+  const newPercent = parseInt(target.value);
+
+  const segment = localSegments.value[selectedSegmentIndex.value];
+  if (!segment.stockVideos) {
+    // Миграция старого формата
+    segment.stockVideos = segment.stockVideo
+      ? [{ ...segment.stockVideo, percent: 100 }]
+      : [];
+  }
+
+  if (segment.stockVideos[videoIndex]) {
+    segment.stockVideos[videoIndex].percent = newPercent;
+
+    // Автоматически перераспределяем остаток на последнее видео
+    if (segment.stockVideos.length > 1) {
+      const total = segment.stockVideos.reduce(
+        (sum: number, v: any, i: number) =>
+          i === segment.stockVideos.length - 1 ? sum : sum + v.percent,
+        0
+      );
+      segment.stockVideos[segment.stockVideos.length - 1].percent = Math.max(
+        10,
+        100 - total
+      );
+    }
+  }
+}
+
+// Удалить видео из сегмента
+function removeVideoFromSegment(videoIndex: number) {
+  if (selectedSegmentIndex.value === null) return;
+
+  const segment = localSegments.value[selectedSegmentIndex.value];
+  if (!segment.stockVideos) return;
+
+  segment.stockVideos.splice(videoIndex, 1);
+
+  // Если осталось одно видео, даём ему 100%
+  if (segment.stockVideos.length === 1) {
+    segment.stockVideos[0].percent = 100;
+  }
+  // Если удалили все, обнуляем и stockVideo
+  if (segment.stockVideos.length === 0) {
+    segment.stockVideo = null;
+  } else {
+    // Обновляем stockVideo для обратной совместимости
+    segment.stockVideo = segment.stockVideos[0];
+  }
+}
 
 watch(
   () => props.isOpen,
@@ -811,7 +1024,16 @@ async function loadMore() {
 function selectVideo(video: VideoResult) {
   if (selectedSegmentIndex.value === null) return;
 
-  localSegments.value[selectedSegmentIndex.value].stockVideo = {
+  const segment = localSegments.value[selectedSegmentIndex.value];
+
+  // Инициализируем stockVideos если нужно
+  if (!segment.stockVideos) {
+    segment.stockVideos = segment.stockVideo
+      ? [{ ...segment.stockVideo, percent: 100 }]
+      : [];
+  }
+
+  const newVideo = {
     id: video.id,
     url: video.url,
     width: video.width,
@@ -819,13 +1041,29 @@ function selectVideo(video: VideoResult) {
     duration: video.duration,
     photographer: video.photographer,
     isVertical: video.isVertical,
+    percent: 100, // Начальный процент
   };
 
-  // НЕ очищаем результаты после выбора видео
+  // Добавляем видео в массив
+  segment.stockVideos.push(newVideo);
+
+  // Перераспределяем проценты равномерно
+  const count = segment.stockVideos.length;
+  const basePercent = Math.floor(100 / count);
+  const remainder = 100 - basePercent * count;
+
+  segment.stockVideos.forEach((v: any, i: number) => {
+    v.percent = basePercent + (i === count - 1 ? remainder : 0);
+  });
+
+  // Обновляем stockVideo для обратной совместимости (первое видео)
+  segment.stockVideo = segment.stockVideos[0];
 }
 
 function removeVideo(index: number) {
-  localSegments.value[index].stockVideo = null;
+  const segment = localSegments.value[index];
+  segment.stockVideo = null;
+  segment.stockVideos = [];
 }
 
 function toggleMusicPreview() {
