@@ -33,7 +33,7 @@ export function useVideos() {
     topic,
     videoSource = "pexels",
     useAIVideoSelection = false,
-    useAIMusicSelection = false
+    useAIMusicSelection = false,
   ) {
     // Поддержка как строки, так и объекта { topic, videoSource, useAIVideoSelection, useAIMusicSelection }
     let topicText = topic;
@@ -265,7 +265,7 @@ export function useVideos() {
     videoId,
     segments,
     backgroundMusicData,
-    voiceConfigId
+    voiceConfigId,
   ) {
     try {
       error.value = null;
@@ -287,15 +287,21 @@ export function useVideos() {
         voiceConfigId,
       });
 
-      // Обновляем видео в списке
+      // Сервер теперь отвечает сразу с минимальными данными
+      // Обновляем только статус, полные данные придут через polling
       if (response.data.video) {
         const index = videos.value.findIndex((v) => v.id === videoId);
         if (index !== -1) {
-          videos.value[index] = response.data.video;
+          // Мержим только статус и progress, сохраняем остальные данные
+          videos.value[index] = {
+            ...videos.value[index],
+            status: response.data.video.status,
+            progress: response.data.video.progress,
+          };
         }
       }
 
-      return response.data.video;
+      return response.data.success;
     } catch (err) {
       error.value = err.response?.data?.message || err.message;
 
@@ -327,7 +333,7 @@ export function useVideos() {
     pollingInterval = setInterval(async () => {
       // Проверяем, есть ли видео в процессе рендеринга
       const hasRenderingVideos = videos.value.some(
-        (v) => v.status === "RENDERING" || v.status === "GENERATING_ASSETS"
+        (v) => v.status === "RENDERING" || v.status === "GENERATING_ASSETS",
       );
 
       if (hasRenderingVideos) {

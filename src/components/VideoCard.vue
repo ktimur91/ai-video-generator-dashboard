@@ -488,7 +488,9 @@ function getStepState(stepKey) {
 }
 
 function formatDate(dateString) {
+  if (!dateString) return "";
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat("ru-RU", {
     day: "numeric",
     month: "short",
