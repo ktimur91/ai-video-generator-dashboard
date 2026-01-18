@@ -35,6 +35,16 @@
             <span class="text-sm text-red-400 hidden sm:inline">YouTube</span>
           </button>
 
+          <!-- Templates Button -->
+          <button
+            @click="$emit('openTemplates')"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 transition-colors"
+            title="Шаблоны видео"
+          >
+            <Palette class="w-4 h-4 text-pink-400" />
+            <span class="text-sm text-pink-400 hidden sm:inline">Шаблоны</span>
+          </button>
+
           <div
             :class="[
               'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium',
@@ -69,7 +79,7 @@
 
 <script setup>
 import { computed } from "vue";
-import { Video, RefreshCw, Mic, Youtube } from "lucide-vue-next";
+import { Video, RefreshCw, Mic, Youtube, Palette } from "lucide-vue-next";
 
 const props = defineProps({
   status: {
@@ -79,7 +89,12 @@ const props = defineProps({
   },
 });
 
-defineEmits(["refresh", "openVoiceSettings", "openYouTubeAccounts"]);
+defineEmits([
+  "refresh",
+  "openVoiceSettings",
+  "openYouTubeAccounts",
+  "openTemplates",
+]);
 
 const statusText = computed(() => {
   switch (props.status) {

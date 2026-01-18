@@ -6,6 +6,7 @@
       @refresh="fetchVideos"
       @openVoiceSettings="openVoiceSettings"
       @openYouTubeAccounts="openYouTubeAccounts"
+      @openTemplates="openTemplates"
     />
 
     <!-- Main Content -->
@@ -91,6 +92,9 @@
       :isOpen="isYouTubeAccountsOpen"
       @close="closeYouTubeAccounts"
     />
+
+    <!-- Template Editor Modal -->
+    <TemplateEditorModal :isOpen="isTemplatesOpen" @close="closeTemplates" />
   </div>
 </template>
 
@@ -105,6 +109,7 @@ import YouTubePublishModal from "./components/YouTubePublishModal.vue";
 import VoiceSettingsModal from "./components/VoiceSettingsModal.vue";
 import VideoVersions from "./components/VideoVersions.vue";
 import YouTubeAccountsModal from "./components/YouTubeAccountsModal.vue";
+import TemplateEditorModal from "./components/TemplateEditorModal.vue";
 import { useVideos } from "./composables/useVideos";
 
 const {
@@ -144,12 +149,23 @@ const versionsVideo = ref(null);
 // YouTube accounts modal state
 const isYouTubeAccountsOpen = ref(false);
 
+// Templates modal state
+const isTemplatesOpen = ref(false);
+
 function openYouTubeAccounts() {
   isYouTubeAccountsOpen.value = true;
 }
 
 function closeYouTubeAccounts() {
   isYouTubeAccountsOpen.value = false;
+}
+
+function openTemplates() {
+  isTemplatesOpen.value = true;
+}
+
+function closeTemplates() {
+  isTemplatesOpen.value = false;
 }
 
 function openVoiceSettings() {

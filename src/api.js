@@ -93,4 +93,59 @@ export const musicApi = {
   getMoods: () => api.get("/music/moods"),
 };
 
+// Templates API (видео шаблоны)
+export const templatesApi = {
+  // Получить все шаблоны
+  getAll: () => api.get("/templates"),
+
+  // Получить шаблон по ID
+  get: (id) => api.get(`/templates/${id}`),
+
+  // Создать шаблон
+  create: (data) => api.post("/templates", data),
+
+  // Обновить шаблон
+  update: (id, data) => api.put(`/templates/${id}`, data),
+
+  // Удалить шаблон
+  delete: (id) => api.delete(`/templates/${id}`),
+
+  // Установить по умолчанию
+  setDefault: (id) => api.put(`/templates/${id}/default`),
+
+  // Добавить оверлей (с файлом)
+  addOverlay: (templateId, formData) =>
+    api.post(`/templates/${templateId}/overlays`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+
+  // Обновить оверлей
+  updateOverlay: (templateId, overlayId, data) =>
+    api.put(`/templates/${templateId}/overlays/${overlayId}`, data),
+
+  // Изменить порядок оверлеев
+  reorderOverlays: (templateId, order) =>
+    api.put(`/templates/${templateId}/overlays/reorder`, { order }),
+
+  // Удалить оверлей
+  deleteOverlay: (templateId, overlayId) =>
+    api.delete(`/templates/${templateId}/overlays/${overlayId}`),
+
+  // Получить список шрифтов
+  getFonts: () => api.get("/templates/fonts/list"),
+
+  // Получить список анимаций
+  getAnimations: () => api.get("/templates/animations/list"),
+
+  // Загрузить иконку CTA
+  uploadCtaIcon: (formData) =>
+    api.post("/templates/cta-icon", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+
+  // Удалить иконку CTA
+  deleteCtaIcon: (imagePath) =>
+    api.delete("/templates/cta-icon", { data: { imagePath } }),
+};
+
 export default api;
