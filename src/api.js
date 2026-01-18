@@ -18,23 +18,41 @@ api.interceptors.response.use(
   (error) => {
     console.error("API Error:", error.response?.data || error.message);
     return Promise.reject(error);
-  }
+  },
 );
 
 // YouTube API functions
 export const youtubeApi = {
-  // Проверить статус авторизации
-  getStatus: () => api.get("/youtube/status"),
+  // === Credentials ===
+  // Получить все OAuth credentials
+  getCredentials: () => api.get("/youtube/credentials"),
 
-  // Получить URL для авторизации
-  getAuthUrl: () => api.get("/youtube/auth"),
+  // Создать новые credentials
+  createCredentials: (data) => api.post("/youtube/credentials", data),
 
-  // Выход из аккаунта
-  logout: () => api.post("/youtube/logout"),
+  // Обновить credentials
+  updateCredentials: (id, data) => api.put(`/youtube/credentials/${id}`, data),
 
-  // Опубликовать видео
-  publish: (videoId, options = {}) =>
-    api.post(`/videos/${videoId}/publish`, options),
+  // Удалить credentials
+  deleteCredentials: (id) => api.delete(`/youtube/credentials/${id}`),
+
+  // === Channels ===
+  // Получить все подключенные каналы
+  getChannels: () => api.get("/youtube/channels"),
+
+  // Получить URL для авторизации нового канала
+  getAuthUrl: (credentialsId) => api.get(`/youtube/auth/${credentialsId}`),
+
+  // Удалить канал
+  deleteChannel: (channelId) => api.delete(`/youtube/channels/${channelId}`),
+
+  // Установить канал по умолчанию
+  setDefaultChannel: (channelId) =>
+    api.put(`/youtube/channels/${channelId}/default`),
+
+  // Опубликовать видео на канал
+  publish: (videoId, channelId, options = {}) =>
+    api.post("/youtube/publish", { videoId, channelId, ...options }),
 };
 
 // Video generation control

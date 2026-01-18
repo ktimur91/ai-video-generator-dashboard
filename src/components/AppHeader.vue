@@ -25,6 +25,16 @@
             <span class="text-sm text-purple-400 hidden sm:inline">Голоса</span>
           </button>
 
+          <!-- YouTube Accounts Button -->
+          <button
+            @click="$emit('openYouTubeAccounts')"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors"
+            title="YouTube аккаунты"
+          >
+            <Youtube class="w-4 h-4 text-red-400" />
+            <span class="text-sm text-red-400 hidden sm:inline">YouTube</span>
+          </button>
+
           <div
             :class="[
               'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium',
@@ -37,8 +47,8 @@
                 status === 'online'
                   ? 'bg-green-400 animate-pulse'
                   : status === 'offline'
-                  ? 'bg-red-400'
-                  : 'bg-yellow-400 animate-pulse',
+                    ? 'bg-red-400'
+                    : 'bg-yellow-400 animate-pulse',
               ]"
             />
             <span>{{ statusText }}</span>
@@ -59,7 +69,7 @@
 
 <script setup>
 import { computed } from "vue";
-import { Video, RefreshCw, Mic } from "lucide-vue-next";
+import { Video, RefreshCw, Mic, Youtube } from "lucide-vue-next";
 
 const props = defineProps({
   status: {
@@ -69,7 +79,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(["refresh", "openVoiceSettings"]);
+defineEmits(["refresh", "openVoiceSettings", "openYouTubeAccounts"]);
 
 const statusText = computed(() => {
   switch (props.status) {

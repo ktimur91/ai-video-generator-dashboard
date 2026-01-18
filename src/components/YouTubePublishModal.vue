@@ -31,55 +31,77 @@
 
       <!-- Content -->
       <div class="p-5 max-h-[70vh] overflow-y-auto">
-        <!-- Not connected state -->
-        <div v-if="!youtubeConnected" class="text-center py-8">
+        <!-- Loading channels -->
+        <div v-if="loadingChannels" class="text-center py-8">
+          <Loader2 class="w-8 h-8 text-primary-500 animate-spin mx-auto mb-4" />
+          <p class="text-gray-400">Загрузка каналов...</p>
+        </div>
+
+        <!-- No channels state -->
+        <div v-else-if="channels.length === 0" class="text-center py-8">
           <div class="p-4 bg-red-500/10 rounded-2xl inline-block mb-4">
             <Youtube class="w-16 h-16 text-red-500" />
           </div>
           <h3 class="text-lg font-semibold text-white mb-2">
-            Подключите YouTube аккаунт
+            Нет подключенных каналов
           </h3>
-          <p class="text-gray-400 mb-6">
-            Для публикации видео необходимо авторизоваться через Google
+          <p class="text-gray-400 mb-2">
+            Для публикации видео необходимо подключить канал
           </p>
-          <button
-            @click="connectYoutube"
-            :disabled="connecting"
-            class="flex items-center justify-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-500 rounded-xl text-white font-medium transition-colors w-full disabled:opacity-50"
-          >
-            <Loader2 v-if="connecting" class="w-5 h-5 animate-spin" />
-            <LogIn v-else class="w-5 h-5" />
-            <span>{{
-              connecting ? "Подключение..." : "Подключить YouTube"
-            }}</span>
-          </button>
+          <p class="text-gray-500 text-sm">
+            Перейдите в настройки YouTube аккаунтов в шапке
+          </p>
         </div>
 
-        <!-- Connected state -->
+        <!-- Has channels -->
         <div v-else>
-          <!-- Channel info -->
-          <div
-            v-if="channelInfo"
-            class="flex items-center gap-3 p-4 bg-gray-800/50 rounded-xl mb-5"
-          >
-            <img
-              v-if="channelInfo.thumbnail"
-              :src="channelInfo.thumbnail"
-              class="w-12 h-12 rounded-full"
-            />
-            <div class="flex-1">
-              <p class="font-medium text-white">{{ channelInfo.title }}</p>
-              <p class="text-sm text-gray-400">
-                {{ formatSubscribers(channelInfo.subscriberCount) }} подписчиков
-              </p>
+          <!-- Channel selector -->
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-400 mb-2">
+              Канал для публикации
+            </label>
+            <div class="space-y-2">
+              <button
+                v-for="channel in channels"
+                :key="channel.id"
+                @click="selectedChannelId = channel.id"
+                :class="[
+                  'flex items-center gap-3 w-full p-3 rounded-xl border transition-colors text-left',
+                  selectedChannelId === channel.id
+                    ? 'border-primary-500 bg-primary-500/10'
+                    : 'border-gray-700 hover:border-gray-600',
+                ]"
+              >
+                <img
+                  v-if="channel.thumbnail"
+                  :src="channel.thumbnail"
+                  class="w-10 h-10 rounded-full"
+                />
+                <div
+                  v-else
+                  class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center"
+                >
+                  <Youtube class="w-5 h-5 text-gray-400" />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-white truncate">
+                    {{ channel.title }}
+                  </p>
+                  <p class="text-xs text-gray-400">
+                    {{ formatSubscribers(channel.subscriberCount) }} подписчиков
+                    <span v-if="channel.credentials" class="text-gray-500">
+                      · {{ channel.credentials.name }}
+                    </span>
+                  </p>
+                </div>
+                <span
+                  v-if="channel.isDefault"
+                  class="px-2 py-1 text-xs bg-primary-500/20 text-primary-400 rounded-lg"
+                >
+                  По умолчанию
+                </span>
+              </button>
             </div>
-            <button
-              @click="disconnectYoutube"
-              class="p-2 rounded-xl hover:bg-gray-700 text-gray-400 hover:text-red-400 transition-colors"
-              title="Отключить аккаунт"
-            >
-              <LogOut class="w-4 h-4" />
-            </button>
           </div>
 
           <!-- Video preview -->
@@ -198,7 +220,7 @@
           <!-- Publish button -->
           <button
             @click="publish"
-            :disabled="publishing || !publishTitle.trim()"
+            :disabled="publishing || !publishTitle.trim() || !selectedChannelId"
             class="flex items-center justify-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-500 rounded-xl text-white font-medium transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Loader2 v-if="publishing" class="w-5 h-5 animate-spin" />
@@ -241,13 +263,11 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from "vue";
+import { ref, watch } from "vue";
 import {
   Youtube,
   X,
   Upload,
-  LogIn,
-  LogOut,
   Loader2,
   CheckCircle,
   AlertCircle,
@@ -270,9 +290,9 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "published"]);
 
-const youtubeConnected = ref(false);
-const channelInfo = ref(null);
-const connecting = ref(false);
+const channels = ref([]);
+const selectedChannelId = ref(null);
+const loadingChannels = ref(false);
 const publishing = ref(false);
 const publishResult = ref(null);
 const error = ref(null);
@@ -281,7 +301,7 @@ const publishTitle = ref("");
 const publishDescription = ref("");
 const publishTags = ref([]);
 const newTag = ref("");
-const categoryId = ref("24"); // Default: Entertainment
+const categoryId = ref("24");
 const privacyStatus = ref("private");
 
 const categories = [
@@ -316,58 +336,49 @@ function removeTag(index) {
   publishTags.value.splice(index, 1);
 }
 
-// Check YouTube connection status
-async function checkYoutubeStatus() {
+// Load channels
+async function loadChannels() {
   try {
-    const response = await youtubeApi.getStatus();
-    youtubeConnected.value = response.data.authenticated;
-    channelInfo.value = response.data.channel;
-  } catch (err) {
-    console.error("Failed to check YouTube status:", err);
-    youtubeConnected.value = false;
-  }
-}
+    loadingChannels.value = true;
+    const response = await youtubeApi.getChannels();
+    channels.value = response.data.channels || [];
 
-// Connect to YouTube
-async function connectYoutube() {
-  try {
-    connecting.value = true;
-    const response = await youtubeApi.getAuthUrl();
-    window.location.href = response.data.authUrl;
+    // Select default channel or first one
+    const defaultChannel = channels.value.find((c) => c.isDefault);
+    if (defaultChannel) {
+      selectedChannelId.value = defaultChannel.id;
+    } else if (channels.value.length > 0) {
+      selectedChannelId.value = channels.value[0].id;
+    }
   } catch (err) {
-    console.error("Failed to get auth URL:", err);
-    error.value = "Не удалось получить ссылку авторизации";
-    connecting.value = false;
-  }
-}
-
-// Disconnect YouTube
-async function disconnectYoutube() {
-  try {
-    await youtubeApi.logout();
-    youtubeConnected.value = false;
-    channelInfo.value = null;
-  } catch (err) {
-    console.error("Failed to disconnect:", err);
+    console.error("Failed to load channels:", err);
+    error.value = "Не удалось загрузить каналы";
+  } finally {
+    loadingChannels.value = false;
   }
 }
 
 // Publish video
 async function publish() {
-  if (!props.video || !publishTitle.value.trim()) return;
+  if (!props.video || !publishTitle.value.trim() || !selectedChannelId.value)
+    return;
 
   try {
     publishing.value = true;
     error.value = null;
     publishResult.value = null;
 
-    const response = await youtubeApi.publish(props.video.id, {
-      customTitle: publishTitle.value,
-      customDescription: publishDescription.value,
-      tags: publishTags.value,
-      categoryId: categoryId.value,
-      privacyStatus: privacyStatus.value,
-    });
+    const response = await youtubeApi.publish(
+      props.video.id,
+      selectedChannelId.value,
+      {
+        customTitle: publishTitle.value,
+        customDescription: publishDescription.value,
+        tags: publishTags.value,
+        categoryId: categoryId.value,
+        privacyStatus: privacyStatus.value,
+      },
+    );
 
     publishResult.value = response.data.youtube;
     emit("published", response.data);
@@ -415,7 +426,6 @@ watch(
         }
       }
 
-      // Базовые хештеги + тематические
       const baseHashtags = "#shorts #BrainBites #факты";
       publishDescription.value =
         `${newVideo.title}\n\n${baseHashtags} ${thematicHashtags}`.trim();
@@ -437,7 +447,7 @@ watch(
       publishResult.value = null;
       error.value = null;
     }
-  }
+  },
 );
 
 // Check status when modal opens
@@ -445,24 +455,10 @@ watch(
   () => props.isOpen,
   (isOpen) => {
     if (isOpen) {
-      checkYoutubeStatus();
+      loadChannels();
     }
-  }
+  },
 );
-
-// Check for YouTube callback params on mount
-onMounted(() => {
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("youtube_connected") === "true") {
-    // Clear URL params
-    window.history.replaceState({}, "", window.location.pathname);
-    checkYoutubeStatus();
-  }
-  if (urlParams.get("youtube_error")) {
-    error.value = urlParams.get("youtube_error");
-    window.history.replaceState({}, "", window.location.pathname);
-  }
-});
 </script>
 
 <style scoped>

@@ -5,6 +5,7 @@
       :status="apiStatus"
       @refresh="fetchVideos"
       @openVoiceSettings="openVoiceSettings"
+      @openYouTubeAccounts="openYouTubeAccounts"
     />
 
     <!-- Main Content -->
@@ -84,6 +85,12 @@
       @close="closeVersionsModal"
       @activated="handleVersionActivated"
     />
+
+    <!-- YouTube Accounts Modal -->
+    <YouTubeAccountsModal
+      :isOpen="isYouTubeAccountsOpen"
+      @close="closeYouTubeAccounts"
+    />
   </div>
 </template>
 
@@ -97,6 +104,7 @@ import VideoBackgroundEditor from "./components/VideoBackgroundEditor.vue";
 import YouTubePublishModal from "./components/YouTubePublishModal.vue";
 import VoiceSettingsModal from "./components/VoiceSettingsModal.vue";
 import VideoVersions from "./components/VideoVersions.vue";
+import YouTubeAccountsModal from "./components/YouTubeAccountsModal.vue";
 import { useVideos } from "./composables/useVideos";
 
 const {
@@ -132,6 +140,17 @@ const isVoiceSettingsOpen = ref(false);
 // Video versions modal state
 const isVersionsModalOpen = ref(false);
 const versionsVideo = ref(null);
+
+// YouTube accounts modal state
+const isYouTubeAccountsOpen = ref(false);
+
+function openYouTubeAccounts() {
+  isYouTubeAccountsOpen.value = true;
+}
+
+function closeYouTubeAccounts() {
+  isYouTubeAccountsOpen.value = false;
+}
 
 function openVoiceSettings() {
   isVoiceSettingsOpen.value = true;
@@ -236,7 +255,7 @@ async function handleApproveAndContinue({
       editorVideo.value.id,
       segments,
       backgroundMusicData,
-      voiceConfigId
+      voiceConfigId,
     );
     if (result) {
       closeBackgroundEditor();

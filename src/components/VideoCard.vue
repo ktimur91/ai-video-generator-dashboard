@@ -183,7 +183,12 @@
 
         <!-- Versions Button -->
         <button
-          v-if="video.status === 'COMPLETED' && video.videoPath && !isEditing"
+          v-if="
+            video.status === 'COMPLETED' &&
+            video.videoPath &&
+            !isEditing &&
+            video.versionsCount > 0
+          "
           @click="$emit('versions', video)"
           class="p-2 rounded-xl hover:bg-purple-500/20 text-gray-400 hover:text-purple-400 transition-colors"
           title="Версии видео"
@@ -211,10 +216,16 @@
           v-if="video.youtubeId"
           :href="video.youtubeUrl"
           target="_blank"
-          class="p-2 rounded-xl bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
+          class="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
           title="Открыть на YouTube"
         >
           <Youtube class="w-4 h-4" />
+          <span
+            v-if="video.youtubeChannel"
+            class="text-xs font-medium truncate max-w-[100px]"
+          >
+            {{ video.youtubeChannel.title }}
+          </span>
         </a>
 
         <button
@@ -314,7 +325,7 @@ const canEditBackgrounds = computed(() => {
   return (
     props.video.segments &&
     !["GENERATING_ASSETS", "RENDERING", "AWAITING_REVIEW"].includes(
-      props.video.status
+      props.video.status,
     )
   );
 });
@@ -330,7 +341,7 @@ const canRender = computed(() => {
 const canRetryFromStep = computed(() => {
   return (
     ["FAILED", "COMPLETED", "PENDING", "AWAITING_REVIEW"].includes(
-      props.video.status
+      props.video.status,
     ) && !isEditing.value
   );
 });
@@ -416,7 +427,7 @@ const statusConfig = {
 };
 
 const currentStatus = computed(
-  () => statusConfig[props.video.status] || statusConfig.PENDING
+  () => statusConfig[props.video.status] || statusConfig.PENDING,
 );
 
 const statusBarColor = computed(() => currentStatus.value.color);
