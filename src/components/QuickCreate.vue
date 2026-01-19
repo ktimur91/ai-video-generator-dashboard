@@ -117,6 +117,28 @@
         </span>
       </div>
 
+      <!-- Выбор шаблона -->
+      <div class="flex items-center gap-4">
+        <label class="text-sm text-gray-400">Шаблон:</label>
+        <select
+          v-model="selectedTemplateId"
+          class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+        >
+          <option :value="null">Без шаблона (по умолчанию)</option>
+          <option
+            v-for="template in templates"
+            :key="template.id"
+            :value="template.id"
+          >
+            {{ template.name }}
+            <template v-if="template.isDefault"> ⭐</template>
+            <template v-if="template.channel">
+              ({{ template.channel.title }})</template
+            >
+          </option>
+        </select>
+      </div>
+
       <div class="flex items-center gap-3">
         <button
           type="submit"
@@ -208,7 +230,7 @@ import {
   RefreshCw,
   Search,
 } from "lucide-vue-next";
-import { topicsApi } from "../api";
+import { topicsApi, templatesApi } from "../api";
 
 const props = defineProps({
   isLoading: Boolean,
@@ -220,6 +242,23 @@ const topic = ref("");
 const videoSource = ref("pexels");
 const useAIVideoSelection = ref(false);
 const useAIMusicSelection = ref(false);
+const selectedTemplateId = ref(null);
+const templates = ref([]);
+
+// Загружаем шаблоны
+async function loadTemplates() {
+  try {
+    const response = await templatesApi.getAll();
+    templates.value = response.data.templates || [];
+    // Выбираем дефолтный шаблон если есть
+    const defaultTemplate = templates.value.find((t) => t.isDefault);
+    if (defaultTemplate) {
+      selectedTemplateId.value = defaultTemplate.id;
+    }
+  } catch (error) {
+    console.error("Failed to load templates:", error);
+  }
+}
 
 // AI рекомендации
 const suggestedTopics = ref([]);
@@ -251,13 +290,14 @@ function handleSubmit() {
       useAIVideoSelection:
         useAIVideoSelection.value && videoSource.value !== "klipy",
       useAIMusicSelection: useAIMusicSelection.value,
+      templateId: selectedTemplateId.value,
     });
     topic.value = "";
   }
 }
 
-// Загружаем рекомендации при первой загрузке
-// onMounted(() => {
-//   loadSuggestions();
-// });
+// Загружаем шаблоны при первой загрузке
+onMounted(() => {
+  loadTemplates();
+});
 </script>

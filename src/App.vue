@@ -255,6 +255,7 @@ async function handleApproveAndContinue({
   segments,
   backgroundMusicData,
   voiceConfigId,
+  templateId,
 }) {
   if (!editorVideo.value) return;
 
@@ -264,6 +265,7 @@ async function handleApproveAndContinue({
       segments,
       voiceConfigId,
       backgroundMusicData,
+      templateId,
     });
     closeBackgroundEditor();
   } else {
@@ -272,6 +274,7 @@ async function handleApproveAndContinue({
       segments,
       backgroundMusicData,
       voiceConfigId,
+      templateId,
     );
     if (result) {
       closeBackgroundEditor();

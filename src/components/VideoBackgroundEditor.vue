@@ -160,7 +160,9 @@
                             loop
                             playsinline
                             @mouseenter="
-                              ($event.target as HTMLVideoElement).play()
+                              ($event.target as HTMLVideoElement)
+                                .play()
+                                .catch(() => {})
                             "
                             @mouseleave="
                               ($event.target as HTMLVideoElement).pause()
@@ -349,7 +351,11 @@
                       muted
                       loop
                       playsinline
-                      @mouseenter="($event.target as HTMLVideoElement).play()"
+                      @mouseenter="
+                        ($event.target as HTMLVideoElement)
+                          .play()
+                          .catch(() => {})
+                      "
                       @mouseleave="($event.target as HTMLVideoElement).pause()"
                     />
                     <div
@@ -500,15 +506,15 @@
                 isPlayingVoice
                   ? 'bg-red-600 hover:bg-red-500 text-white'
                   : isGeneratingVoicePreview
-                  ? 'bg-gray-600 text-gray-400 cursor-wait'
-                  : 'bg-purple-700 hover:bg-purple-600 text-white'
+                    ? 'bg-gray-600 text-gray-400 cursor-wait'
+                    : 'bg-purple-700 hover:bg-purple-600 text-white'
               "
               :title="
                 isPlayingVoice
                   ? 'Остановить'
                   : isGeneratingVoicePreview
-                  ? 'Генерация...'
-                  : 'Прослушать голос'
+                    ? 'Генерация...'
+                    : 'Прослушать голос'
               "
             >
               <Loader2
@@ -521,6 +527,26 @@
                 class="w-4 h-4"
               />
             </button>
+
+            <!-- Divider -->
+            <div class="w-px h-6 bg-gray-700 mx-2"></div>
+
+            <!-- Template selector -->
+            <Palette class="w-4 h-4 text-pink-400" />
+            <select
+              v-model="selectedTemplateId"
+              class="px-3 py-1.5 bg-gray-800 border border-pink-700/50 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-pink-500 min-w-[180px]"
+            >
+              <option :value="null">Без шаблона</option>
+              <option
+                v-for="template in templatesList"
+                :key="template.id"
+                :value="template.id"
+              >
+                {{ template.name }}
+                <template v-if="template.isDefault"> ⭐</template>
+              </option>
+            </select>
           </div>
         </div>
 
@@ -581,9 +607,10 @@ import {
   Mic,
   Library,
   GripVertical,
+  Palette,
 } from "lucide-vue-next";
 import draggable from "vuedraggable";
-import api from "../api";
+import api, { templatesApi } from "../api";
 import MusicSelectorModal from "./MusicSelectorModal.vue";
 
 interface VideoResult {
@@ -673,6 +700,15 @@ const isGeneratingVoicePreview = ref(false);
 const voiceAudioPlayer = ref<HTMLAudioElement | null>(null);
 const voicePreviewText = "Привет! Это пример голоса для вашего видео.";
 
+// Шаблоны
+interface Template {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+const templatesList = ref<Template[]>([]);
+const selectedTemplateId = ref<string | null>(null);
+
 // Результаты поиска для каждого источника (сохраняются отдельно)
 const sourceResults = reactive<Record<string, SourceResults>>({
   pexels: {
@@ -701,7 +737,7 @@ const sourceResults = reactive<Record<string, SourceResults>>({
 
 const currentSourceResults = computed(() => sourceResults[activeSource.value]);
 const hasSearchedInSource = computed(
-  () => currentSourceResults.value.hasSearched
+  () => currentSourceResults.value.hasSearched,
 );
 
 // Computed для работы с несколькими видео
@@ -736,7 +772,7 @@ const currentSegmentVideosList = computed({
 const totalPercent = computed(() => {
   return currentSegmentVideos.value.reduce(
     (sum, v) => sum + (v.percent || 0),
-    0
+    0,
   );
 });
 
@@ -770,11 +806,11 @@ function updateVideoPercent(videoIndex: number, event: Event) {
       const total = segment.stockVideos.reduce(
         (sum: number, v: any, i: number) =>
           i === segment.stockVideos.length - 1 ? sum : sum + v.percent,
-        0
+        0,
       );
       segment.stockVideos[segment.stockVideos.length - 1].percent = Math.max(
         10,
-        100 - total
+        100 - total,
       );
     }
   }
@@ -875,9 +911,26 @@ watch(
         } finally {
           isLoadingVoices.value = false;
         }
+
+        // Загружаем список шаблонов
+        try {
+          const response = await templatesApi.getAll();
+          templatesList.value = response.data.templates || [];
+          // Устанавливаем текущий шаблон видео или шаблон по умолчанию
+          if (props.video?.templateId) {
+            selectedTemplateId.value = props.video.templateId;
+          } else {
+            const defaultTemplate = templatesList.value.find(
+              (t) => t.isDefault,
+            );
+            selectedTemplateId.value = defaultTemplate?.id || null;
+          }
+        } catch (e) {
+          console.error("Failed to load templates:", e);
+        }
       }
     }
-  }
+  },
 );
 
 const changedCount = computed(() => {
@@ -1127,7 +1180,7 @@ async function toggleVoicePreview() {
   } else {
     // Найти выбранный голос и сгенерировать превью
     const voice = voiceConfigList.value.find(
-      (v) => v.id === selectedVoiceConfigId.value
+      (v) => v.id === selectedVoiceConfigId.value,
     );
     if (!voice) return;
 
@@ -1145,7 +1198,7 @@ async function toggleVoicePreview() {
         const audioUrl = `http://localhost:3001${response.data.url}`;
         voiceAudioPlayer.value = new Audio(audioUrl);
         voiceAudioPlayer.value.volume = 0.8;
-        voiceAudioPlayer.value.play();
+        voiceAudioPlayer.value.play().catch(() => {});
         voiceAudioPlayer.value.onended = () => {
           isPlayingVoice.value = false;
           voiceAudioPlayer.value = null;
@@ -1203,6 +1256,7 @@ async function saveAndRender() {
     voiceConfigId: selectedVoiceConfigId.value || null,
     backgroundMusicData: selectedMusicTrack.value || null,
     regenerateAudio: voiceChanged,
+    templateId: selectedTemplateId.value || null,
   });
   close();
 }
@@ -1212,6 +1266,7 @@ async function approveAndContinue() {
     segments: localSegments.value,
     backgroundMusicData: selectedMusicTrack.value || null,
     voiceConfigId: selectedVoiceConfigId.value || null,
+    templateId: selectedTemplateId.value || null,
   });
   close();
 }

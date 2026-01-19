@@ -735,6 +735,18 @@
                                   class="w-6 h-6 rounded cursor-pointer border-0"
                                 />
                               </div>
+                              <div class="flex items-center gap-2">
+                                <label class="text-xs text-gray-500"
+                                  >Размер текста:</label
+                                >
+                                <input
+                                  type="number"
+                                  v-model.number="item.textSize"
+                                  min="10"
+                                  max="48"
+                                  class="w-14 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
+                                />
+                              </div>
                             </div>
                           </div>
 
@@ -792,130 +804,153 @@
                     </button>
                   </div>
 
-                  <!-- Overlays list -->
-                  <div v-if="editForm.overlays?.length" class="space-y-3">
-                    <div
-                      v-for="overlay in editForm.overlays"
-                      :key="overlay.id"
-                      class="p-3 bg-gray-800/50 rounded-xl"
-                    >
-                      <div class="flex items-start gap-3">
-                        <img
-                          :src="API_URL + '/' + overlay.imagePath"
-                          class="w-16 h-16 object-contain rounded-lg bg-gray-700 shrink-0"
-                        />
-                        <div class="flex-1 min-w-0">
-                          <div class="flex items-center gap-2 mb-2">
-                            <input
-                              v-model="overlay.name"
-                              @change="updateOverlay(overlay)"
-                              class="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                            />
-                            <button
-                              @click="deleteOverlay(overlay.id)"
-                              class="p-1 hover:bg-red-500/20 rounded text-gray-400 hover:text-red-400 transition-colors"
-                            >
-                              <Trash2 class="w-4 h-4" />
-                            </button>
+                  <!-- Overlays list with drag-drop -->
+                  <draggable
+                    v-if="editForm.overlays?.length"
+                    v-model="editForm.overlays"
+                    item-key="id"
+                    handle=".overlay-drag-handle"
+                    ghost-class="opacity-50"
+                    animation="200"
+                    class="space-y-3"
+                    @end="onOverlayDragEnd"
+                  >
+                    <template #item="{ element: overlay, index }">
+                      <div class="p-3 bg-gray-800/50 rounded-xl">
+                        <div class="flex items-start gap-3">
+                          <!-- Drag handle -->
+                          <div
+                            class="overlay-drag-handle cursor-grab active:cursor-grabbing p-1 hover:bg-gray-700 rounded self-center"
+                          >
+                            <GripVertical class="w-4 h-4 text-gray-500" />
                           </div>
+                          <img
+                            :src="API_URL + '/' + overlay.imagePath"
+                            class="w-16 h-16 object-contain rounded-lg bg-gray-700 shrink-0"
+                          />
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-2">
+                              <span
+                                class="text-xs text-gray-500 bg-gray-700 px-1.5 py-0.5 rounded"
+                                >z:{{ index + 1 }}</span
+                              >
+                              <input
+                                v-model="overlay.name"
+                                @change="updateOverlay(overlay)"
+                                class="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                              />
+                              <button
+                                @click="deleteOverlay(overlay.id)"
+                                class="p-1 hover:bg-red-500/20 rounded text-gray-400 hover:text-red-400 transition-colors"
+                              >
+                                <Trash2 class="w-4 h-4" />
+                              </button>
+                            </div>
 
-                          <!-- Position & Size -->
-                          <div class="grid grid-cols-4 gap-2 mb-2">
-                            <div>
-                              <label class="block text-xs text-gray-500 mb-0.5"
-                                >X (%)</label
-                              >
-                              <input
-                                type="number"
-                                v-model.number="overlay.positionX"
-                                @change="updateOverlay(overlay)"
-                                min="0"
-                                max="100"
-                                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
-                              />
+                            <!-- Position & Size -->
+                            <div class="grid grid-cols-4 gap-2 mb-2">
+                              <div>
+                                <label
+                                  class="block text-xs text-gray-500 mb-0.5"
+                                  >X (%)</label
+                                >
+                                <input
+                                  type="number"
+                                  v-model.number="overlay.positionX"
+                                  @change="updateOverlay(overlay)"
+                                  min="0"
+                                  max="100"
+                                  class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label
+                                  class="block text-xs text-gray-500 mb-0.5"
+                                  >Y (%)</label
+                                >
+                                <input
+                                  type="number"
+                                  v-model.number="overlay.positionY"
+                                  @change="updateOverlay(overlay)"
+                                  min="0"
+                                  max="100"
+                                  class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label
+                                  class="block text-xs text-gray-500 mb-0.5"
+                                  >Ширина (%)</label
+                                >
+                                <input
+                                  type="number"
+                                  v-model.number="overlay.width"
+                                  @change="updateOverlay(overlay)"
+                                  min="1"
+                                  max="100"
+                                  class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label
+                                  class="block text-xs text-gray-500 mb-0.5"
+                                  >Прозрачность</label
+                                >
+                                <input
+                                  type="number"
+                                  v-model.number="overlay.opacity"
+                                  @change="updateOverlay(overlay)"
+                                  min="0"
+                                  max="1"
+                                  step="0.1"
+                                  class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
+                                />
+                              </div>
                             </div>
-                            <div>
-                              <label class="block text-xs text-gray-500 mb-0.5"
-                                >Y (%)</label
-                              >
-                              <input
-                                type="number"
-                                v-model.number="overlay.positionY"
-                                @change="updateOverlay(overlay)"
-                                min="0"
-                                max="100"
-                                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
-                              />
-                            </div>
-                            <div>
-                              <label class="block text-xs text-gray-500 mb-0.5"
-                                >Ширина (%)</label
-                              >
-                              <input
-                                type="number"
-                                v-model.number="overlay.width"
-                                @change="updateOverlay(overlay)"
-                                min="1"
-                                max="100"
-                                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
-                              />
-                            </div>
-                            <div>
-                              <label class="block text-xs text-gray-500 mb-0.5"
-                                >Прозрачность</label
-                              >
-                              <input
-                                type="number"
-                                v-model.number="overlay.opacity"
-                                @change="updateOverlay(overlay)"
-                                min="0"
-                                max="1"
-                                step="0.1"
-                                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
-                              />
-                            </div>
-                          </div>
 
-                          <!-- Appearance Config -->
-                          <div class="flex items-center gap-3 text-xs">
-                            <label
-                              class="flex items-center gap-1 cursor-pointer"
-                            >
-                              <input
-                                type="checkbox"
-                                v-model="overlay.appearanceConfig.intro.show"
-                                @change="updateOverlay(overlay)"
-                                class="w-3 h-3 rounded"
-                              />
-                              <span class="text-gray-400">Интро</span>
-                            </label>
-                            <label
-                              class="flex items-center gap-1 cursor-pointer"
-                            >
-                              <input
-                                type="checkbox"
-                                v-model="overlay.appearanceConfig.segments.show"
-                                @change="updateOverlay(overlay)"
-                                class="w-3 h-3 rounded"
-                              />
-                              <span class="text-gray-400">Сегменты</span>
-                            </label>
-                            <label
-                              class="flex items-center gap-1 cursor-pointer"
-                            >
-                              <input
-                                type="checkbox"
-                                v-model="overlay.appearanceConfig.outro.show"
-                                @change="updateOverlay(overlay)"
-                                class="w-3 h-3 rounded"
-                              />
-                              <span class="text-gray-400">Аутро</span>
-                            </label>
+                            <!-- Appearance Config -->
+                            <div class="flex items-center gap-3 text-xs">
+                              <label
+                                class="flex items-center gap-1 cursor-pointer"
+                              >
+                                <input
+                                  type="checkbox"
+                                  v-model="overlay.appearanceConfig.intro.show"
+                                  @change="updateOverlay(overlay)"
+                                  class="w-3 h-3 rounded"
+                                />
+                                <span class="text-gray-400">Интро</span>
+                              </label>
+                              <label
+                                class="flex items-center gap-1 cursor-pointer"
+                              >
+                                <input
+                                  type="checkbox"
+                                  v-model="
+                                    overlay.appearanceConfig.segments.show
+                                  "
+                                  @change="updateOverlay(overlay)"
+                                  class="w-3 h-3 rounded"
+                                />
+                                <span class="text-gray-400">Сегменты</span>
+                              </label>
+                              <label
+                                class="flex items-center gap-1 cursor-pointer"
+                              >
+                                <input
+                                  type="checkbox"
+                                  v-model="overlay.appearanceConfig.outro.show"
+                                  @change="updateOverlay(overlay)"
+                                  class="w-3 h-3 rounded"
+                                />
+                                <span class="text-gray-400">Аутро</span>
+                              </label>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    </template>
+                  </draggable>
                 </template>
               </div>
             </div>
@@ -1184,6 +1219,7 @@ import {
   Settings,
   Layers,
 } from "lucide-vue-next";
+import draggable from "vuedraggable";
 import { templatesApi, youtubeApi } from "../api";
 
 const props = defineProps({
@@ -1478,6 +1514,7 @@ function addCtaItem() {
     imagePath: null,
     text: "",
     textPosition: "right",
+    textSize: 18,
     bgColor: "transparent",
     textColor: "#FFFFFF",
   });
@@ -1564,6 +1601,23 @@ async function updateOverlay(overlay) {
   }
 }
 
+// Обновление порядка оверлеев после drag-drop
+async function onOverlayDragEnd() {
+  // Обновляем order для каждого оверлея согласно новой позиции
+  for (let i = 0; i < editForm.overlays.length; i++) {
+    editForm.overlays[i].order = i;
+    try {
+      await templatesApi.updateOverlay(
+        selectedTemplate.value.id,
+        editForm.overlays[i].id,
+        { order: i },
+      );
+    } catch (error) {
+      console.error("Failed to update overlay order:", error);
+    }
+  }
+}
+
 async function deleteOverlay(overlayId) {
   if (!confirm("Удалить эту картинку?")) return;
   try {
@@ -1638,6 +1692,45 @@ function getSubtitleStrokeStyle() {
 function close() {
   emit("close");
 }
+
+// Watcher для синхронизации preset с positionX/positionY для субтитров
+watch(
+  () => editForm.subtitlePositionPreset,
+  (preset) => {
+    if (preset === "top") {
+      editForm.subtitlePositionX = 50;
+      editForm.subtitlePositionY = 10;
+    } else if (preset === "center") {
+      editForm.subtitlePositionX = 50;
+      editForm.subtitlePositionY = 50;
+    } else if (preset === "bottom") {
+      editForm.subtitlePositionX = 50;
+      editForm.subtitlePositionY = 85;
+    }
+    // Если preset = null (своя позиция), не меняем координаты
+  },
+);
+
+// Watcher для синхронизации preset с positionX/positionY для номеров
+watch(
+  () => editForm.numberPositionPreset,
+  (preset) => {
+    if (preset === "top-left") {
+      editForm.numberPositionX = 8;
+      editForm.numberPositionY = 8;
+    } else if (preset === "top-right") {
+      editForm.numberPositionX = 92;
+      editForm.numberPositionY = 8;
+    } else if (preset === "bottom-left") {
+      editForm.numberPositionX = 8;
+      editForm.numberPositionY = 92;
+    } else if (preset === "bottom-right") {
+      editForm.numberPositionX = 92;
+      editForm.numberPositionY = 92;
+    }
+    // Если preset = null (своя позиция), не меняем координаты
+  },
+);
 
 watch(
   () => props.isOpen,

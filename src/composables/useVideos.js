@@ -34,18 +34,21 @@ export function useVideos() {
     videoSource = "pexels",
     useAIVideoSelection = false,
     useAIMusicSelection = false,
+    templateId = null,
   ) {
-    // Поддержка как строки, так и объекта { topic, videoSource, useAIVideoSelection, useAIMusicSelection }
+    // Поддержка как строки, так и объекта { topic, videoSource, useAIVideoSelection, useAIMusicSelection, templateId }
     let topicText = topic;
     let source = videoSource;
     let aiVideoSelection = useAIVideoSelection;
     let aiMusicSelection = useAIMusicSelection;
+    let selectedTemplateId = templateId;
 
     if (typeof topic === "object" && topic !== null) {
       topicText = topic.topic;
       source = topic.videoSource || "pexels";
       aiVideoSelection = topic.useAIVideoSelection || false;
       aiMusicSelection = topic.useAIMusicSelection || false;
+      selectedTemplateId = topic.templateId || null;
     }
 
     if (!topicText || !topicText.trim()) {
@@ -62,6 +65,7 @@ export function useVideos() {
         videoSource: source,
         useAIVideoSelection: aiVideoSelection,
         useAIMusicSelection: aiMusicSelection,
+        templateId: selectedTemplateId,
       });
 
       // Добавляем новое видео в начало списка
@@ -266,6 +270,7 @@ export function useVideos() {
     segments,
     backgroundMusicData,
     voiceConfigId,
+    templateId,
   ) {
     try {
       error.value = null;
@@ -285,6 +290,7 @@ export function useVideos() {
         segments,
         backgroundMusicData,
         voiceConfigId,
+        templateId,
       });
 
       // Сервер теперь отвечает сразу с минимальными данными
