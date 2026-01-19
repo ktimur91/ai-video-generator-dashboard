@@ -228,7 +228,7 @@
                       type="number"
                       v-model.number="editForm.subtitleFontSize"
                       min="16"
-                      max="64"
+                      max="300"
                       class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white text-sm"
                     />
                   </div>
@@ -395,9 +395,8 @@
                         v-model="editForm.numberStyle"
                         class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white text-sm"
                       >
-                        <option value="circle">Круг</option>
-                        <option value="square">Квадрат</option>
                         <option value="badge">Бейдж</option>
+                        <option value="square">Квадрат</option>
                         <option value="minimal">Минимальный</option>
                       </select>
                     </div>
@@ -409,7 +408,7 @@
                         type="number"
                         v-model.number="editForm.numberFontSize"
                         min="12"
-                        max="48"
+                        max="300"
                         class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white text-sm"
                       />
                     </div>
@@ -417,7 +416,7 @@
 
                   <div
                     v-if="!editForm.numberPositionPreset"
-                    class="grid grid-cols-2 gap-4 p-3 bg-gray-800/50 rounded-xl"
+                    class="grid grid-cols-3 gap-4 p-3 bg-gray-800/50 rounded-xl"
                   >
                     <div>
                       <label class="block text-xs text-gray-500 mb-1"
@@ -443,6 +442,23 @@
                         class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
                       />
                     </div>
+                    <div>
+                      <label class="block text-xs text-gray-500 mb-1"
+                        >Точка опоры</label
+                      >
+                      <select
+                        v-model="editForm.numberAnchor"
+                        class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                      >
+                        <option value="center">По центру</option>
+                        <option value="top-left">Сверху слева</option>
+                        <option value="top-center">Сверху по центру</option>
+                        <option value="top-right">Сверху справа</option>
+                        <option value="bottom-left">Снизу слева</option>
+                        <option value="bottom-center">Снизу по центру</option>
+                        <option value="bottom-right">Снизу справа</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div class="grid grid-cols-2 gap-4">
@@ -456,6 +472,44 @@
                       label="Цвет текста"
                       v-model="editForm.numberFontColor"
                     />
+                  </div>
+
+                  <!-- Шаблон текста нумерации -->
+                  <div class="space-y-2">
+                    <label class="block text-sm text-gray-400"
+                      >Шаблон текста</label
+                    >
+                    <input
+                      type="text"
+                      v-model="editForm.numberTemplate"
+                      placeholder="{num}"
+                      class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white text-sm"
+                    />
+                    <p class="text-xs text-gray-500">
+                      Используйте
+                      <code class="bg-gray-700 px-1 rounded">{num}</code> для
+                      номера. Примеры:
+                      <span class="text-gray-400">Факт №{num}</span>,
+                      <span class="text-gray-400">Топ {num}</span>,
+                      <span class="text-gray-400">Часть {num}</span>
+                    </p>
+                  </div>
+
+                  <!-- Направление нумерации -->
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-1.5"
+                      >Направление</label
+                    >
+                    <select
+                      v-model="editForm.numberDirection"
+                      class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white text-sm"
+                    >
+                      <option value="asc">По возрастанию (1, 2, 3...)</option>
+                      <option value="desc">По убыванию (...3, 2, 1)</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">
+                      Убывание полезно для "Топ" роликов — лучший товар в конце
+                    </p>
                   </div>
                 </div>
               </div>
@@ -523,7 +577,7 @@
 
                 <div v-if="editForm.showCTA" class="space-y-4">
                   <!-- Position X/Y -->
-                  <div class="grid grid-cols-4 gap-4">
+                  <div class="grid grid-cols-5 gap-4">
                     <div>
                       <label class="block text-sm text-gray-400 mb-1.5"
                         >Позиция X (%)</label
@@ -547,6 +601,23 @@
                         max="100"
                         class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white text-sm"
                       />
+                    </div>
+                    <div>
+                      <label class="block text-sm text-gray-400 mb-1.5"
+                        >Якорь</label
+                      >
+                      <select
+                        v-model="editForm.ctaAnchor"
+                        class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white text-sm"
+                      >
+                        <option value="center">По центру</option>
+                        <option value="top-left">Сверху слева</option>
+                        <option value="top-center">Сверху по центру</option>
+                        <option value="top-right">Сверху справа</option>
+                        <option value="bottom-left">Снизу слева</option>
+                        <option value="bottom-center">Снизу по центру</option>
+                        <option value="bottom-right">Снизу справа</option>
+                      </select>
                     </div>
                     <div>
                       <label class="block text-sm text-gray-400 mb-1.5"
@@ -633,7 +704,7 @@
                                   type="number"
                                   v-model.number="item.iconSize"
                                   min="12"
-                                  max="64"
+                                  max="300"
                                   placeholder="24"
                                   class="w-full px-2 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
                                   :disabled="!!item.imagePath"
@@ -673,7 +744,7 @@
                                   type="number"
                                   v-model.number="item.imageSize"
                                   min="16"
-                                  max="128"
+                                  max="300"
                                   placeholder="32"
                                   class="w-full px-2 py-1.5 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
                                 />
@@ -743,7 +814,7 @@
                                   type="number"
                                   v-model.number="item.textSize"
                                   min="10"
-                                  max="48"
+                                  max="300"
                                   class="w-14 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
                                 />
                               </div>
@@ -848,7 +919,7 @@
                             </div>
 
                             <!-- Position & Size -->
-                            <div class="grid grid-cols-4 gap-2 mb-2">
+                            <div class="grid grid-cols-5 gap-2 mb-2">
                               <div>
                                 <label
                                   class="block text-xs text-gray-500 mb-0.5"
@@ -876,6 +947,25 @@
                                   max="100"
                                   class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
                                 />
+                              </div>
+                              <div>
+                                <label
+                                  class="block text-xs text-gray-500 mb-0.5"
+                                  >Якорь</label
+                                >
+                                <select
+                                  v-model="overlay.anchor"
+                                  @change="updateOverlay(overlay)"
+                                  class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs"
+                                >
+                                  <option value="center">Центр</option>
+                                  <option value="top-left">↖ Лево</option>
+                                  <option value="top-center">↑ Верх</option>
+                                  <option value="top-right">↗ Право</option>
+                                  <option value="bottom-left">↙ Лево</option>
+                                  <option value="bottom-center">↓ Низ</option>
+                                  <option value="bottom-right">↘ Право</option>
+                                </select>
                               </div>
                               <div>
                                 <label
@@ -1004,7 +1094,7 @@
                 class="absolute inset-0 bg-gradient-to-b from-gray-700/50 to-gray-900/50"
               />
 
-              <!-- Progress bar -->
+              <!-- Progress bar - z-index: 10 -->
               <div
                 v-if="editForm.showProgressBar"
                 class="absolute left-0 right-0"
@@ -1012,20 +1102,25 @@
                   editForm.progressBarPosition === 'top' ? 'top-0' : 'bottom-0'
                 "
                 :style="{
-                  height: editForm.progressBarHeight + 'px',
+                  height:
+                    Math.max(
+                      1,
+                      Math.round(editForm.progressBarHeight * PREVIEW_SCALE),
+                    ) + 'px',
                   background: `linear-gradient(to right, ${editForm.progressBarColor || editForm.primaryColor} 60%, rgba(255,255,255,0.2) 60%)`,
+                  zIndex: 10,
                 }"
               />
 
-              <!-- Number badge -->
+              <!-- Number badge - z-index: 10 -->
               <div
                 v-if="editForm.showNumbers"
-                class="absolute m-2"
+                class="absolute"
                 :class="getNumberPositionClass()"
-                :style="getNumberCustomPosition()"
+                :style="{ ...getNumberCustomPosition(), zIndex: 10 }"
               >
                 <div
-                  class="w-7 h-7 flex items-center justify-center text-white font-bold"
+                  class="flex items-center justify-center text-white font-bold whitespace-nowrap"
                   :class="getNumberStyleClass()"
                   :style="{
                     backgroundColor:
@@ -1033,17 +1128,33 @@
                         ? 'transparent'
                         : editForm.numberBgColor || editForm.primaryColor,
                     color: editForm.numberFontColor,
-                    fontSize: editForm.numberFontSize * 0.5 + 'px',
+                    fontSize:
+                      Math.round(editForm.numberFontSize * PREVIEW_SCALE) +
+                      'px',
+                    padding:
+                      editForm.numberTemplate === '{num}'
+                        ? undefined
+                        : '4px 8px',
+                    minWidth:
+                      editForm.numberTemplate === '{num}' ? '28px' : undefined,
+                    minHeight:
+                      editForm.numberTemplate === '{num}' ? '28px' : undefined,
                   }"
                 >
-                  1
+                  {{
+                    editForm.numberTemplate.replace(
+                      "{num}",
+                      editForm.numberDirection === "desc" ? "5" : "1",
+                    )
+                  }}
                 </div>
               </div>
 
               <!-- Subtitles preview -->
+              <!-- Subtitles preview - z-index: 10 -->
               <div
                 class="absolute left-2 right-2"
-                :style="getSubtitlePosition()"
+                :style="{ ...getSubtitlePosition(), zIndex: 10 }"
               >
                 <div
                   class="text-center py-1 px-2 rounded-lg"
@@ -1051,7 +1162,8 @@
                     fontFamily: `'${editForm.subtitleFontFamily}', sans-serif`,
                     fontWeight: editForm.subtitleFontWeight,
                     fontSize:
-                      Math.round(editForm.subtitleFontSize * 0.4) + 'px',
+                      Math.round(editForm.subtitleFontSize * PREVIEW_SCALE) +
+                      'px',
                     color: editForm.subtitleFontColor,
                     backgroundColor: editForm.subtitleBgEnabled
                       ? editForm.subtitleBgColor
@@ -1068,14 +1180,15 @@
                 </div>
               </div>
 
-              <!-- CTA preview -->
+              <!-- CTA preview - z-index: 10 -->
               <div
                 v-if="editForm.showCTA && editForm.ctaItems?.length"
                 class="absolute"
                 :style="{
                   left: editForm.ctaPositionX + '%',
                   top: editForm.ctaPositionY + '%',
-                  transform: 'translate(-50%, -50%)',
+                  transform: getAnchorTransform(editForm.ctaAnchor),
+                  zIndex: 10,
                 }"
               >
                 <div
@@ -1083,7 +1196,7 @@
                   :style="{
                     flexDirection:
                       editForm.ctaDirection === 'vertical' ? 'column' : 'row',
-                    gap: editForm.ctaGap * 0.4 + 'px',
+                    gap: Math.round(editForm.ctaGap * PREVIEW_SCALE) + 'px',
                   }"
                 >
                   <div
@@ -1116,8 +1229,10 @@
                       <img
                         :src="API_URL + '/' + item.imagePath"
                         :style="{
-                          width: item.imageSize * 0.4 + 'px',
-                          height: item.imageSize * 0.4 + 'px',
+                          width:
+                            Math.round(item.imageSize * PREVIEW_SCALE) + 'px',
+                          height:
+                            Math.round(item.imageSize * PREVIEW_SCALE) + 'px',
                           objectFit: 'contain',
                         }"
                       />
@@ -1125,7 +1240,8 @@
                     <span
                       v-else
                       :style="{
-                        fontSize: item.iconSize * 0.4 + 'px',
+                        fontSize:
+                          Math.round(item.iconSize * PREVIEW_SCALE) + 'px',
                         lineHeight: 1,
                       }"
                       >{{ item.icon || "❓" }}</span
@@ -1135,7 +1251,9 @@
                       v-if="item.text"
                       :style="{
                         color: item.textColor,
-                        fontSize: '6px',
+                        fontSize:
+                          Math.round((item.textSize || 18) * PREVIEW_SCALE) +
+                          'px',
                         whiteSpace: 'nowrap',
                       }"
                       >{{ item.text }}</span
@@ -1144,7 +1262,7 @@
                 </div>
               </div>
 
-              <!-- Overlays preview -->
+              <!-- Overlays preview - z-index: 1 (над фоном, но под UI) -->
               <div
                 v-for="overlay in editForm.overlays"
                 :key="overlay.id"
@@ -1152,9 +1270,10 @@
                 :style="{
                   left: overlay.positionX + '%',
                   top: overlay.positionY + '%',
-                  transform: 'translate(-50%, -50%)',
                   width: overlay.width + '%',
                   opacity: overlay.opacity,
+                  transform: getAnchorTransform(overlay.anchor),
+                  zIndex: 1,
                 }"
               >
                 <img
@@ -1230,6 +1349,9 @@ const emit = defineEmits(["close"]);
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
+// Preview scale: превью ~340px высотой, видео 1920px → 340/1920 ≈ 0.177
+const PREVIEW_SCALE = 0.177;
+
 // State
 const loading = ref(false);
 const saving = ref(false);
@@ -1279,10 +1401,13 @@ const editForm = reactive({
   numberPositionX: 5,
   numberPositionY: 5,
   numberPositionPreset: "top-left",
-  numberStyle: "circle",
+  numberStyle: "badge",
   numberBgColor: null,
   numberFontColor: "#FFFFFF",
   numberFontSize: 24,
+  numberTemplate: "{num}",
+  numberDirection: "asc",
+  numberAnchor: "top-left",
   // Progress bar
   showProgressBar: true,
   progressBarPosition: "bottom",
@@ -1292,6 +1417,7 @@ const editForm = reactive({
   showCTA: true,
   ctaPositionX: 50,
   ctaPositionY: 92,
+  ctaAnchor: "center",
   ctaDirection: "horizontal",
   ctaGap: 8,
   ctaItems: [],
@@ -1389,6 +1515,9 @@ function selectTemplate(template) {
     numberBgColor: template.numberBgColor,
     numberFontColor: template.numberFontColor,
     numberFontSize: template.numberFontSize,
+    numberTemplate: template.numberTemplate ?? "{num}",
+    numberDirection: template.numberDirection ?? "asc",
+    numberAnchor: template.numberAnchor ?? "top-left",
     showProgressBar: template.showProgressBar,
     progressBarPosition: template.progressBarPosition,
     progressBarColor: template.progressBarColor,
@@ -1396,6 +1525,7 @@ function selectTemplate(template) {
     showCTA: template.showCTA,
     ctaPositionX: template.ctaPositionX,
     ctaPositionY: template.ctaPositionY,
+    ctaAnchor: template.ctaAnchor ?? "center",
     ctaDirection: template.ctaDirection,
     ctaGap: template.ctaGap,
     ctaItems: template.ctaItems || [],
@@ -1432,10 +1562,13 @@ function createNewTemplate() {
     numberPositionX: 5,
     numberPositionY: 5,
     numberPositionPreset: "top-left",
-    numberStyle: "circle",
+    numberStyle: "badge",
     numberBgColor: null,
     numberFontColor: "#FFFFFF",
     numberFontSize: 24,
+    numberTemplate: "{num}",
+    numberDirection: "asc",
+    numberAnchor: "top-left",
     showProgressBar: true,
     progressBarPosition: "bottom",
     progressBarColor: null,
@@ -1443,6 +1576,7 @@ function createNewTemplate() {
     showCTA: true,
     ctaPositionX: 50,
     ctaPositionY: 92,
+    ctaAnchor: "center",
     ctaDirection: "horizontal",
     ctaGap: 8,
     ctaItems: [],
@@ -1455,6 +1589,9 @@ async function saveTemplate() {
   try {
     const data = { ...editForm };
     delete data.overlays;
+
+    // Сохраняем текущие overlays перед обновлением
+    const currentOverlays = [...editForm.overlays];
 
     if (isCreating.value) {
       const res = await templatesApi.create(data);
@@ -1469,6 +1606,8 @@ async function saveTemplate() {
         templates.value[index] = res.data.template;
       }
       selectTemplate(res.data.template);
+      // Восстанавливаем overlays с правильным порядком (они уже были обновлены через drag-drop)
+      editForm.overlays = currentOverlays;
     }
   } catch (error) {
     console.error("Failed to save template:", error);
@@ -1509,8 +1648,8 @@ const ctaIconInputs = ref({});
 function addCtaItem() {
   editForm.ctaItems.push({
     icon: "🔔",
-    iconSize: 24,
-    imageSize: 32,
+    iconSize: 64,
+    imageSize: 120,
     imagePath: null,
     text: "",
     textPosition: "right",
@@ -1640,23 +1779,35 @@ function getNumberPositionClass() {
   return classes[editForm.numberPositionPreset] || "";
 }
 
+function getAnchorTransform(anchor) {
+  const transforms = {
+    center: "translate(-50%, -50%)",
+    "top-left": "translate(0%, 0%)",
+    "top-center": "translate(-50%, 0%)",
+    "top-right": "translate(-100%, 0%)",
+    "bottom-left": "translate(0%, -100%)",
+    "bottom-center": "translate(-50%, -100%)",
+    "bottom-right": "translate(-100%, -100%)",
+  };
+  return transforms[anchor] || "translate(0%, 0%)";
+}
+
 function getNumberCustomPosition() {
   if (editForm.numberPositionPreset) return {};
   return {
     left: editForm.numberPositionX + "%",
     top: editForm.numberPositionY + "%",
-    transform: "translate(-50%, -50%)",
+    transform: getAnchorTransform(editForm.numberAnchor),
   };
 }
 
 function getNumberStyleClass() {
   const styles = {
-    circle: "rounded-full",
-    square: "rounded-md",
     badge: "rounded-full px-2",
+    square: "rounded-md",
     minimal: "",
   };
-  return styles[editForm.numberStyle] || "rounded-full";
+  return styles[editForm.numberStyle] || "rounded-full px-2";
 }
 
 function getSubtitlePosition() {
@@ -1672,7 +1823,10 @@ function getSubtitlePosition() {
 
 function getSubtitleStrokeStyle() {
   if (!editForm.subtitleStrokeEnabled) return {};
-  const w = editForm.subtitleStrokeWidth || 2;
+  const w = Math.max(
+    1,
+    Math.round((editForm.subtitleStrokeWidth || 2) * PREVIEW_SCALE),
+  );
   const c = editForm.subtitleStrokeColor || "#000000";
   // Используем text-shadow для создания обводки (работает лучше чем -webkit-text-stroke)
   return {
