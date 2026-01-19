@@ -170,6 +170,61 @@
 
               <!-- Subtitles Tab -->
               <div v-if="activeTab === 'subtitles'" class="space-y-5">
+                <!-- Превью режима субтитров -->
+                <!-- <div
+                  class="p-4 bg-gray-800/50 rounded-xl border border-gray-700"
+                >
+                  <div class="flex items-center justify-between mb-3">
+                    <span class="text-sm text-gray-400"
+                      >Пример отображения:</span
+                    >
+                    <span class="text-xs text-gray-500">{{
+                      subtitleModeDescription
+                    }}</span>
+                  </div>
+                  <div
+                    class="text-center py-3 px-4 rounded-lg"
+                    :style="{
+                      fontFamily: `'${editForm.subtitleFontFamily}', sans-serif`,
+                      fontWeight: editForm.subtitleFontWeight,
+                      fontSize: '18px',
+                      color: editForm.subtitleFontColor,
+                      backgroundColor: editForm.subtitleBgEnabled
+                        ? editForm.subtitleBgColor
+                        : 'transparent',
+                    }"
+                  >
+                    <template v-if="editForm.subtitleMode === 'word'">
+                      <span :style="{ color: editForm.subtitleHighlightColor }"
+                        >Слово</span
+                      >
+                    </template>
+                    <template v-else-if="editForm.subtitleMode === 'phrase'">
+                      <span>...</span
+                      ><template
+                        v-for="(item, idx) in phrasePreviewWords"
+                        :key="idx"
+                        ><span
+                          :style="
+                            item.highlight
+                              ? { color: editForm.subtitleHighlightColor }
+                              : {}
+                          "
+                          >{{ item.word }}</span
+                        ></template
+                      ><span>...</span>
+                    </template>
+                    <template v-else>
+                      <span>Слоны — </span>
+                      <span>единственные </span>
+                      <span :style="{ color: editForm.subtitleHighlightColor }"
+                        >животные</span
+                      >
+                      <span style="opacity: 0.3"> которые...</span>
+                    </template>
+                  </div>
+                </div> -->
+
                 <div class="grid grid-cols-3 gap-4">
                   <div>
                     <label class="block text-sm text-gray-400 mb-1.5"
@@ -184,6 +239,20 @@
                       <option value="word">По словам</option>
                     </select>
                   </div>
+                  <!-- Количество слов в фразе (только для режима phrase) -->
+                  <div v-if="editForm.subtitleMode === 'phrase'">
+                    <label class="block text-sm text-gray-400 mb-1.5"
+                      >Слов в фразе</label
+                    >
+                    <input
+                      type="number"
+                      v-model.number="editForm.subtitlePhraseLength"
+                      min="2"
+                      max="10"
+                      class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white text-sm"
+                    />
+                  </div>
+
                   <div>
                     <label class="block text-sm text-gray-400 mb-1.5"
                       >Шрифт</label
@@ -1173,10 +1242,34 @@
                     ...getSubtitleStrokeStyle(),
                   }"
                 >
-                  <span>Пример </span>
-                  <span :style="{ color: editForm.subtitleHighlightColor }"
-                    >текста</span
-                  >
+                  <!-- Превью в зависимости от режима субтитров -->
+                  <template v-if="editForm.subtitleMode === 'word'">
+                    <span :style="{ color: editForm.subtitleHighlightColor }"
+                      >Слово</span
+                    >
+                  </template>
+                  <template v-else-if="editForm.subtitleMode === 'phrase'">
+                    <span>...</span
+                    ><template
+                      v-for="(item, idx) in phrasePreviewWords"
+                      :key="idx"
+                      ><span
+                        :style="
+                          item.highlight
+                            ? { color: editForm.subtitleHighlightColor }
+                            : {}
+                        "
+                        >{{ item.word }}</span
+                      ></template
+                    ><span>...</span>
+                  </template>
+                  <template v-else>
+                    <span>Слоны — </span>
+                    <span :style="{ color: editForm.subtitleHighlightColor }"
+                      >единственные</span
+                    >
+                    <span style="opacity: 0.3"> животные...</span>
+                  </template>
                 </div>
               </div>
 
@@ -1354,6 +1447,44 @@ const PREVIEW_SCALE = 0.177;
 
 // State
 const loading = ref(false);
+
+// Computed: описание режима субтитров
+const subtitleModeDescription = computed(() => {
+  switch (editForm.subtitleMode) {
+    case "word":
+      return "Показывается только текущее слово";
+    case "phrase":
+      return `По ${editForm.subtitlePhraseLength} слов за раз`;
+    case "karaoke":
+    default:
+      return "Слова появляются по очереди";
+  }
+});
+
+// Пример фразы для превью в зависимости от phraseLength
+const PHRASE_WORDS = [
+  "которые",
+  "не",
+  "умеют",
+  "прыгать",
+  "вообще",
+  "никогда",
+  "совсем",
+  "абсолютно",
+  "точно",
+  "факт",
+];
+const phrasePreviewWords = computed(() => {
+  const len = editForm.subtitlePhraseLength || 4;
+  const words = PHRASE_WORDS.slice(0, len);
+  // Подсвечиваем слово в середине
+  const highlightIndex = Math.floor(len / 2);
+  return words.map((word, i) => ({
+    word: i < words.length - 1 ? word + " " : word, // Пробел после каждого слова кроме последнего
+    highlight: i === highlightIndex,
+  }));
+});
+
 const saving = ref(false);
 const templates = ref([]);
 const channels = ref([]);
@@ -1382,6 +1513,7 @@ const editForm = reactive({
   backgroundColor: "#000000",
   // Subtitles
   subtitleMode: "karaoke",
+  subtitlePhraseLength: 4,
   subtitlePositionX: 50,
   subtitlePositionY: 80,
   subtitlePositionPreset: "bottom",
@@ -1493,6 +1625,7 @@ function selectTemplate(template) {
     primaryColor: template.primaryColor,
     backgroundColor: template.backgroundColor,
     subtitleMode: template.subtitleMode,
+    subtitlePhraseLength: template.subtitlePhraseLength ?? 4,
     subtitlePositionX: template.subtitlePositionX,
     subtitlePositionY: template.subtitlePositionY,
     subtitlePositionPreset: template.subtitlePositionPreset,
@@ -1544,6 +1677,7 @@ function createNewTemplate() {
     primaryColor: "#8B5CF6",
     backgroundColor: "#000000",
     subtitleMode: "karaoke",
+    subtitlePhraseLength: 4,
     subtitlePositionX: 50,
     subtitlePositionY: 80,
     subtitlePositionPreset: "bottom",
