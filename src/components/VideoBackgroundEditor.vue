@@ -8,7 +8,7 @@
 
     <!-- Modal -->
     <div
-      class="relative bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+      class="relative bg-gray-900 rounded-2xl w-[95vw] h-[90vh] overflow-hidden flex flex-col"
     >
       <!-- Header -->
       <div
@@ -66,350 +66,331 @@
         </div>
 
         <!-- Video Search -->
-        <div class="flex-1 overflow-y-auto">
+        <div
+          v-if="selectedSegmentIndex !== null"
+          class="grid grid-cols-[auto_1fr] overflow-auto"
+        >
+          <!-- Current Video Preview -->
           <div
-            v-if="selectedSegmentIndex !== null"
-            class="grid grid-cols-[auto_1fr]"
+            class="flex flex-col w-[340px] h-full border-r border-gray-800 overflow-y-auto"
           >
-            <!-- Current Video Preview -->
-            <div
-              class="flex flex-col w-[340px] h-full gap-5 p-4 border-r border-gray-800 overflow-y-auto"
-            >
-              <!-- Text -->
-              <div class="flex flex-col">
-                <div class="flex items-center justify-between mb-2">
-                  <h3 class="text-sm font-medium text-gray-400">Текст</h3>
-                  <button
-                    v-if="!isEditingText"
-                    @click="startEditingText"
-                    class="p-1 hover:bg-gray-700 rounded transition-colors text-gray-400 hover:text-white"
-                    title="Редактировать текст"
-                  >
-                    <Pencil class="w-4 h-4" />
-                  </button>
-                </div>
-
-                <!-- Text editing mode -->
-                <div v-if="isEditingText" class="space-y-2">
-                  <textarea
-                    v-model="editingTextValue"
-                    class="w-full h-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                    placeholder="Введите текст сегмента..."
-                  ></textarea>
-                  <div class="flex gap-2">
-                    <button
-                      @click="saveTextEdit"
-                      class="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-sm text-white font-medium transition-colors"
-                    >
-                      Сохранить
-                    </button>
-                    <button
-                      @click="cancelTextEdit"
-                      class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-white font-medium transition-colors"
-                    >
-                      Отмена
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Text display mode -->
-                <p v-else class="text-gray-300 text-sm leading-relaxed">
-                  {{ localSegments[selectedSegmentIndex]?.text }}
-                </p>
-
-                <!-- Estimated Duration -->
-                <p class="text-xs text-gray-500 mt-2">
-                  ⏱ ~{{
-                    localSegments[selectedSegmentIndex]?.estimatedDuration ||
-                    "?"
-                  }}
-                  сек
-                </p>
+            <!-- Text -->
+            <div class="flex flex-col p-4 pb-0">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-medium text-gray-400">Текст</h3>
+                <button
+                  v-if="!isEditingText"
+                  @click="startEditingText"
+                  class="p-1 hover:bg-gray-700 rounded transition-colors text-gray-400 hover:text-white"
+                  title="Редактировать текст"
+                >
+                  <Pencil class="w-4 h-4" />
+                </button>
               </div>
 
-              <!-- Multiple Videos Preview -->
-              <div class="flex flex-col gap-2">
-                <div class="flex items-center justify-between">
-                  <h3 class="text-sm font-medium text-gray-400">Видео фоны</h3>
-                  <span class="text-xs text-gray-500">
-                    {{ currentSegmentVideos.length }} видео
-                  </span>
+              <!-- Text editing mode -->
+              <div v-if="isEditingText" class="space-y-2">
+                <textarea
+                  v-model="editingTextValue"
+                  class="w-full h-32 px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                  placeholder="Введите текст сегмента..."
+                ></textarea>
+                <div class="flex gap-2">
+                  <button
+                    @click="saveTextEdit"
+                    class="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-sm text-white font-medium transition-colors"
+                  >
+                    Сохранить
+                  </button>
+                  <button
+                    @click="cancelTextEdit"
+                    class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-white font-medium transition-colors"
+                  >
+                    Отмена
+                  </button>
                 </div>
+              </div>
 
-                <!-- Video List with Drag & Drop -->
-                <draggable
-                  v-if="currentSegmentVideos.length > 0"
-                  v-model="currentSegmentVideosList"
-                  item-key="id"
-                  handle=".drag-handle"
-                  ghost-class="opacity-50"
-                  animation="200"
-                  class="space-y-2"
-                >
-                  <template #item="{ element: video, index: vIdx }">
-                    <div
-                      class="relative rounded-xl overflow-hidden bg-gray-800 group"
-                    >
-                      <div class="flex gap-2">
-                        <!-- Video thumbnail -->
-                        <div class="relative w-20 h-24 flex-shrink-0">
-                          <video
-                            :src="video.url"
-                            class="w-full h-full object-cover"
-                            muted
-                            loop
-                            playsinline
-                            @mouseenter="
-                              ($event.target as HTMLVideoElement)
-                                .play()
-                                .catch(() => {})
-                            "
-                            @mouseleave="
-                              ($event.target as HTMLVideoElement).pause()
-                            "
-                          />
+              <!-- Text display mode -->
+              <p v-else class="text-gray-300 text-sm leading-relaxed">
+                {{ localSegments[selectedSegmentIndex]?.text }}
+              </p>
+
+              <!-- Estimated Duration -->
+              <p class="text-xs text-gray-500 mt-2">
+                ⏱ ~{{
+                  localSegments[selectedSegmentIndex]?.estimatedDuration || "?"
+                }}
+                сек
+              </p>
+            </div>
+
+            <!-- Multiple Videos Preview -->
+            <div class="flex flex-col gap-2 p-4 pb-0">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-medium text-gray-400">Видео фоны</h3>
+                <span class="text-xs text-gray-500">
+                  {{ currentSegmentVideos.length }} видео
+                </span>
+              </div>
+
+              <!-- Video List with Drag & Drop -->
+              <draggable
+                v-if="currentSegmentVideos.length > 0"
+                v-model="currentSegmentVideosList"
+                item-key="id"
+                handle=".drag-handle"
+                ghost-class="opacity-50"
+                animation="200"
+                class="space-y-2"
+              >
+                <template #item="{ element: video, index: vIdx }">
+                  <div
+                    class="relative rounded-xl overflow-hidden bg-gray-800 group"
+                  >
+                    <div class="flex gap-2">
+                      <!-- Video thumbnail -->
+                      <div class="relative w-20 h-24 flex-shrink-0">
+                        <video
+                          :src="video.url"
+                          class="w-full h-full object-cover"
+                          muted
+                          loop
+                          playsinline
+                          @mouseenter="
+                            ($event.target as HTMLVideoElement)
+                              .play()
+                              .catch(() => {})
+                          "
+                          @mouseleave="
+                            ($event.target as HTMLVideoElement).pause()
+                          "
+                        />
+                      </div>
+
+                      <!-- Video info & controls -->
+                      <div
+                        class="flex-1 py-1 pr-2 flex flex-col justify-between"
+                      >
+                        <div class="flex items-center justify-between">
+                          <span class="text-xs text-gray-400">
+                            Видео: {{ video.duration }} сек.
+                          </span>
+
+                          <div class="flex items-center gap-2">
+                            <!-- Remove video -->
+                            <button
+                              @click="removeVideoFromSegment(vIdx)"
+                              class="p-1.5 bg-red-600/20 hover:bg-red-600 rounded-lg transition-colors group"
+                              title="Удалить видео"
+                            >
+                              <Trash2
+                                class="w-4 h-4 text-red-400 group-hover:text-white"
+                              />
+                            </button>
+
+                            <!-- Drag handle -->
+                            <button
+                              class="drag-handle p-1.5 bg-gray-700/20 hover:bg-gray-700 cursor-grab active:cursor-grabbing rounded-lg transition-colors group"
+                              title="Переместить видео"
+                            >
+                              <GripVertical class="w-4 h-4 text-gray-500" />
+                            </button>
+                          </div>
                         </div>
 
-                        <!-- Video info & controls -->
-                        <div
-                          class="flex-1 py-1 pr-2 flex flex-col justify-between"
-                        >
-                          <div class="flex items-center justify-between">
-                            <span class="text-xs text-gray-400">
-                              Видео: {{ video.duration }} сек.
-                            </span>
-
-                            <div class="flex items-center gap-2">
-                              <!-- Remove video -->
-                              <button
-                                @click="removeVideoFromSegment(vIdx)"
-                                class="p-1.5 bg-red-600/20 hover:bg-red-600 rounded-lg transition-colors group"
-                                title="Удалить видео"
-                              >
-                                <Trash2
-                                  class="w-4 h-4 text-red-400 group-hover:text-white"
-                                />
-                              </button>
-
-                              <!-- Drag handle -->
-                              <button
-                                class="drag-handle p-1.5 bg-gray-700/20 hover:bg-gray-700 cursor-grab active:cursor-grabbing rounded-lg transition-colors group"
-                                title="Переместить видео"
-                              >
-                                <GripVertical class="w-4 h-4 text-gray-500" />
-                              </button>
-                            </div>
-                          </div>
-
-                          <!-- Percent slider -->
-                          <div class="flex items-center gap-2 pr-2">
-                            <input
-                              type="range"
-                              :value="video.percent"
-                              @input="updateVideoPercent(vIdx, $event)"
-                              min="10"
-                              max="100"
-                              class="flex-1 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                            />
-                            <span
-                              class="text-xs text-primary-400 w-8 text-right"
-                            >
-                              {{ video.percent }}%
-                            </span>
-                          </div>
-
-                          <!-- Approx seconds -->
-                          <span class="text-xs text-gray-500">
-                            Будет показано: ~{{
-                              getVideoSeconds(video.percent)
-                            }}
-                            сек.
+                        <!-- Percent slider -->
+                        <div class="flex items-center gap-2 pr-2">
+                          <input
+                            type="range"
+                            :value="video.percent"
+                            @input="updateVideoPercent(vIdx, $event)"
+                            min="10"
+                            max="100"
+                            class="flex-1 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                          />
+                          <span class="text-xs text-primary-400 w-8 text-right">
+                            {{ video.percent }}%
                           </span>
                         </div>
+
+                        <!-- Approx seconds -->
+                        <span class="text-xs text-gray-500">
+                          Будет показано: ~{{ getVideoSeconds(video.percent) }}
+                          сек.
+                        </span>
                       </div>
                     </div>
-                  </template>
-                </draggable>
+                  </div>
+                </template>
+              </draggable>
 
-                <!-- Empty state -->
-                <div
-                  v-else
-                  class="rounded-xl bg-gray-800 aspect-[9/16] w-full flex items-center justify-center text-gray-500 text-sm"
-                >
-                  Нет видео<br />Выберите справа →
-                </div>
-
-                <!-- Total percent indicator -->
-                <div
-                  v-if="currentSegmentVideos.length > 0"
-                  class="flex items-center justify-between text-xs"
-                >
-                  <span class="text-gray-500">Всего:</span>
-                  <span
-                    :class="
-                      totalPercent === 100
-                        ? 'text-green-400'
-                        : 'text-yellow-400'
-                    "
-                  >
-                    {{ totalPercent }}%
-                    <span v-if="totalPercent !== 100" class="text-yellow-400"
-                      >(должно быть 100%)</span
-                    >
-                  </span>
-                </div>
+              <!-- Empty state -->
+              <div
+                v-else
+                class="rounded-xl bg-gray-800 aspect-[9/16] w-full flex items-center justify-center text-gray-500 text-sm"
+              >
+                Нет видео<br />Выберите справа →
               </div>
             </div>
 
-            <!-- Search -->
-            <div class="space-y-3 p-4 overflow-y-auto">
-              <!-- Search Input -->
-              <div class="flex gap-2">
-                <input
-                  v-model="searchQuery"
-                  type="text"
-                  placeholder="Поиск видео..."
-                  class="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  @keyup.enter="searchVideos(true)"
-                />
-                <button
-                  @click="searchVideos(true)"
-                  :disabled="isSearching || !searchQuery"
-                  class="px-4 py-2 bg-primary-600 hover:bg-primary-500 disabled:bg-gray-700 rounded-xl text-white font-medium transition-colors"
-                >
-                  <Search v-if="!isSearching" class="w-5 h-5" />
-                  <Loader2 v-else class="w-5 h-5 animate-spin" />
-                </button>
-              </div>
-
-              <!-- Vertical Only Toggle (not for Klipy) -->
-              <div
-                v-if="activeSource !== 'klipy'"
-                class="flex items-center gap-4"
+            <!-- Total percent indicator -->
+            <div
+              v-if="currentSegmentVideos.length > 0"
+              class="flex items-center justify-between text-xs sticky bottom-0 bg-gray-900 p-4"
+            >
+              <span class="text-gray-500">Всего:</span>
+              <span
+                :class="
+                  totalPercent === 100 ? 'text-green-400' : 'text-yellow-400'
+                "
               >
-                <label
-                  class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer"
+                {{ totalPercent }}%
+                <span v-if="totalPercent !== 100" class="text-yellow-400"
+                  >(должно быть 100%)</span
                 >
-                  <input
-                    type="checkbox"
-                    v-model="verticalOnly"
-                    class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-primary-600 focus:ring-primary-500"
-                  />
-                  Только вертикальные видео
-                </label>
-              </div>
-
-              <!-- Klipy notice -->
-              <div v-else class="text-xs text-gray-500">
-                💡 Klipy — клипы из фильмов и мемы. Фильтр ориентации
-                недоступен.
-              </div>
-
-              <!-- Source Tabs -->
-              <div class="flex gap-2 border-b border-gray-700">
-                <button
-                  v-for="source in sources"
-                  :key="source.id"
-                  @click="switchSource(source.id)"
-                  :class="[
-                    'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
-                    activeSource === source.id
-                      ? 'text-primary-400 border-primary-500'
-                      : 'text-gray-400 border-transparent hover:text-gray-300',
-                  ]"
-                >
-                  {{ source.name }}
-                  <span
-                    v-if="sourceResults[source.id]?.videos.length"
-                    class="ml-1 text-xs opacity-70"
-                  >
-                    ({{ sourceResults[source.id].videos.length }})
-                  </span>
-                </button>
-              </div>
-
-              <!-- Search Results for Active Source -->
-              <div
-                v-if="currentSourceResults.videos.length > 0"
-                class="space-y-3"
-              >
-                <div class="grid grid-cols-4 gap-3">
-                  <button
-                    v-for="video in currentSourceResults.videos"
-                    :key="video.id"
-                    @click="selectVideo(video)"
-                    :class="[
-                      'relative rounded-xl overflow-hidden bg-gray-800 aspect-[9/16] transition-all group',
-                      !video.isVertical
-                        ? 'ring-2 ring-yellow-500/50'
-                        : 'hover:ring-2 hover:ring-primary-500',
-                    ]"
-                  >
-                    <video
-                      :src="video.url"
-                      class="w-full h-full object-cover"
-                      muted
-                      loop
-                      playsinline
-                      @mouseenter="
-                        ($event.target as HTMLVideoElement)
-                          .play()
-                          .catch(() => {})
-                      "
-                      @mouseleave="($event.target as HTMLVideoElement).pause()"
-                    />
-                    <div
-                      class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                    >
-                      <Check class="w-8 h-8 text-white" />
-                    </div>
-                    <div
-                      class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/70 rounded text-xs text-white"
-                    >
-                      {{ video.duration }}s
-                    </div>
-                    <div
-                      v-if="!video.isVertical"
-                      class="absolute top-1 left-1 px-1.5 py-0.5 bg-yellow-600/90 rounded text-xs text-white"
-                    >
-                      ⬌
-                    </div>
-                  </button>
-                </div>
-
-                <!-- Load More Button -->
-                <button
-                  v-if="currentSourceResults.hasMore"
-                  @click="loadMore"
-                  :disabled="isSearching"
-                  class="w-full py-3 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-800 rounded-xl text-gray-300 font-medium transition-colors flex items-center justify-center gap-2"
-                >
-                  <Loader2 v-if="isSearching" class="w-4 h-4 animate-spin" />
-                  <span v-else>Загрузить ещё</span>
-                </button>
-              </div>
-
-              <p
-                v-else-if="hasSearchedInSource && !isSearching"
-                class="text-gray-500 text-center py-8"
-              >
-                Видео не найдены. Попробуйте другие ключевые слова.
-              </p>
-
-              <p
-                v-else-if="!hasSearchedInSource"
-                class="text-gray-500 text-center py-8"
-              >
-                Введите ключевые слова для поиска видео
-              </p>
+              </span>
             </div>
           </div>
 
-          <div
-            v-else
-            class="flex items-center justify-center h-full text-gray-500 p-5"
-          >
-            Выберите сегмент слева для редактирования
+          <!-- Search -->
+          <div class="space-y-3 p-4 overflow-y-auto">
+            <!-- Search Input -->
+            <div class="flex gap-2">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Поиск видео..."
+                class="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                @keyup.enter="searchVideos(true)"
+              />
+              <button
+                @click="searchVideos(true)"
+                :disabled="isSearching || !searchQuery"
+                class="px-4 py-2 bg-primary-600 hover:bg-primary-500 disabled:bg-gray-700 rounded-xl text-white font-medium transition-colors"
+              >
+                <Search v-if="!isSearching" class="w-5 h-5" />
+                <Loader2 v-else class="w-5 h-5 animate-spin" />
+              </button>
+            </div>
+
+            <!-- Vertical Only Toggle (not for Klipy) -->
+            <div
+              v-if="activeSource !== 'klipy'"
+              class="flex items-center gap-4"
+            >
+              <label
+                class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  v-model="verticalOnly"
+                  class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-primary-600 focus:ring-primary-500"
+                />
+                Только вертикальные видео
+              </label>
+            </div>
+
+            <!-- Klipy notice -->
+            <div v-else class="text-xs text-gray-500">
+              💡 Klipy — клипы из фильмов и мемы. Фильтр ориентации недоступен.
+            </div>
+
+            <!-- Source Tabs -->
+            <div class="flex gap-2 border-b border-gray-700">
+              <button
+                v-for="source in sources"
+                :key="source.id"
+                @click="switchSource(source.id)"
+                :class="[
+                  'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
+                  activeSource === source.id
+                    ? 'text-primary-400 border-primary-500'
+                    : 'text-gray-400 border-transparent hover:text-gray-300',
+                ]"
+              >
+                {{ source.name }}
+                <span
+                  v-if="sourceResults[source.id]?.videos.length"
+                  class="ml-1 text-xs opacity-70"
+                >
+                  ({{ sourceResults[source.id].videos.length }})
+                </span>
+              </button>
+            </div>
+
+            <!-- Search Results for Active Source -->
+            <div
+              v-if="currentSourceResults.videos.length > 0"
+              class="space-y-3"
+            >
+              <div class="grid grid-cols-4 gap-3">
+                <button
+                  v-for="video in currentSourceResults.videos"
+                  :key="video.id"
+                  @click="selectVideo(video)"
+                  :class="[
+                    'relative rounded-xl overflow-hidden bg-gray-800 aspect-[9/16] transition-all group',
+                    !video.isVertical
+                      ? 'ring-2 ring-yellow-500/50'
+                      : 'hover:ring-2 hover:ring-primary-500',
+                  ]"
+                >
+                  <video
+                    :src="video.url"
+                    class="w-full h-full object-cover"
+                    muted
+                    loop
+                    playsinline
+                    @mouseenter="
+                      ($event.target as HTMLVideoElement).play().catch(() => {})
+                    "
+                    @mouseleave="($event.target as HTMLVideoElement).pause()"
+                  />
+                  <div
+                    class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  >
+                    <Check class="w-8 h-8 text-white" />
+                  </div>
+                  <div
+                    class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/70 rounded text-xs text-white"
+                  >
+                    {{ video.duration }}s
+                  </div>
+                  <div
+                    v-if="!video.isVertical"
+                    class="absolute top-1 left-1 px-1.5 py-0.5 bg-yellow-600/90 rounded text-xs text-white"
+                  >
+                    ⬌
+                  </div>
+                </button>
+              </div>
+
+              <!-- Load More Button -->
+              <button
+                v-if="currentSourceResults.hasMore"
+                @click="loadMore"
+                :disabled="isSearching"
+                class="w-full py-3 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-800 rounded-xl text-gray-300 font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <Loader2 v-if="isSearching" class="w-4 h-4 animate-spin" />
+                <span v-else>Загрузить ещё</span>
+              </button>
+            </div>
+
+            <p
+              v-else-if="hasSearchedInSource && !isSearching"
+              class="text-gray-500 text-center py-8"
+            >
+              Видео не найдены. Попробуйте другие ключевые слова.
+            </p>
+
+            <p
+              v-else-if="!hasSearchedInSource"
+              class="text-gray-500 text-center py-8"
+            >
+              Введите ключевые слова для поиска видео
+            </p>
           </div>
         </div>
       </div>
@@ -427,7 +408,8 @@
 
             <!-- Current selected music display -->
             <div
-              class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg min-w-[200px]"
+              class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg min-w-[200px] cursor-pointer"
+              @click="isMusicModalOpen = true"
             >
               <span
                 v-if="selectedMusicTrack"
@@ -439,13 +421,13 @@
             </div>
 
             <!-- Open music library button -->
-            <button
+            <!-- <button
               @click="isMusicModalOpen = true"
               class="p-1.5 bg-primary-600 hover:bg-primary-500 rounded-lg transition-colors"
               title="Открыть библиотеку музыки"
             >
               <Library class="w-4 h-4 text-white" />
-            </button>
+            </button> -->
 
             <!-- Play/Stop button -->
             <button
@@ -948,21 +930,6 @@ const changedCount = computed(() => {
   return count;
 });
 
-const hasAnyChanges = computed(() => {
-  if (changedCount.value > 0) return true;
-
-  // Проверяем изменение музыки
-  const originalMusicId = props.video?.backgroundMusicData
-    ? typeof props.video.backgroundMusicData === "string"
-      ? JSON.parse(props.video.backgroundMusicData)?.id
-      : props.video.backgroundMusicData?.id
-    : null;
-  const currentMusicId = selectedMusicTrack.value?.id || null;
-
-  if (originalMusicId !== currentMusicId) return true;
-  return false;
-});
-
 function getSegmentIcon(type: string) {
   switch (type) {
     case "intro":
@@ -1111,12 +1078,6 @@ function selectVideo(video: VideoResult) {
 
   // Обновляем stockVideo для обратной совместимости (первое видео)
   segment.stockVideo = segment.stockVideos[0];
-}
-
-function removeVideo(index: number) {
-  const segment = localSegments.value[index];
-  segment.stockVideo = null;
-  segment.stockVideos = [];
 }
 
 function toggleMusicPreview() {
@@ -1270,4 +1231,23 @@ async function approveAndContinue() {
   });
   close();
 }
+
+// Lifecycle hooks
+onMounted(() => {
+  // Очистка аудио при размонтировании компонента
+  window.addEventListener("beforeunload", () => {
+    stopMusicPreview();
+    stopVoicePreview();
+  });
+
+  // Автоматически выбираем первый сегмент при открытии
+  watch(
+    () => props.isOpen,
+    (isOpen) => {
+      if (isOpen && localSegments.value.length > 0) {
+        selectedSegmentIndex.value = 0;
+      }
+    },
+  );
+});
 </script>

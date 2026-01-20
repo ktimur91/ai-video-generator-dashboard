@@ -9,7 +9,7 @@
 
     <!-- Modal -->
     <div
-      class="relative w-full max-w-2xl glass rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+      class="relative w-full max-w-2xl h-[90vh] glass rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 grid grid-rows-[auto_1fr]"
     >
       <!-- Header -->
       <div
@@ -30,7 +30,7 @@
       </div>
 
       <!-- Content -->
-      <div class="p-5 max-h-[70vh] overflow-y-auto">
+      <div class="p-5 overflow-y-auto">
         <!-- Loading -->
         <div v-if="loading" class="text-center py-8">
           <Loader2 class="w-8 h-8 text-primary-500 animate-spin mx-auto mb-4" />

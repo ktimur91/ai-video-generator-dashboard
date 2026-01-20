@@ -9,7 +9,7 @@
 
     <!-- Modal -->
     <div
-      class="relative w-full max-w-7xl max-h-[90vh] glass rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
+      class="relative w-[95vw] h-[90vh] glass rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col"
     >
       <!-- Header -->
       <div
@@ -912,6 +912,81 @@
                 </div>
               </div>
 
+              <!-- Audio Tab -->
+              <div v-if="activeTab === 'audio'" class="space-y-5">
+                <div class="p-4 bg-gray-800/50 rounded-xl">
+                  <h4 class="text-sm font-medium text-white mb-3">
+                    🎵 Фоновая музыка
+                  </h4>
+                  <div class="space-y-4">
+                    <div>
+                      <label class="block text-sm text-gray-400 mb-2"
+                        >Громкость музыки:
+                        {{
+                          Math.round(editForm.backgroundMusicVolume * 100)
+                        }}%</label
+                      >
+                      <input
+                        type="range"
+                        v-model.number="editForm.backgroundMusicVolume"
+                        min="0"
+                        max="0.5"
+                        step="0.01"
+                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                      />
+                      <div
+                        class="flex justify-between text-xs text-gray-500 mt-1"
+                      >
+                        <span>0%</span>
+                        <span class="text-green-400"
+                          >Рекомендуется: 10-15%</span
+                        >
+                        <span>50%</span>
+                      </div>
+                    </div>
+                    <p class="text-xs text-gray-500">
+                      💡 Музыка должна быть на 30-40% тише голоса, чтобы не
+                      мешать восприятию
+                    </p>
+                  </div>
+                </div>
+
+                <div class="p-4 bg-gray-800/50 rounded-xl">
+                  <h4 class="text-sm font-medium text-white mb-3">
+                    ✂️ Монтаж видео
+                  </h4>
+                  <div class="space-y-4">
+                    <div>
+                      <label class="block text-sm text-gray-400 mb-2"
+                        >Макс. длительность клипа:
+                        {{ editForm.maxClipDuration }} сек</label
+                      >
+                      <input
+                        type="range"
+                        v-model.number="editForm.maxClipDuration"
+                        min="1"
+                        max="10"
+                        step="1"
+                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                      />
+                      <div
+                        class="flex justify-between text-xs text-gray-500 mt-1"
+                      >
+                        <span>1 сек</span>
+                        <span class="text-green-400"
+                          >Рекомендуется: 2-3 сек</span
+                        >
+                        <span>10 сек</span>
+                      </div>
+                    </div>
+                    <p class="text-xs text-gray-500">
+                      💡 Частая смена кадров (каждые 2-3 сек) удерживает
+                      внимание зрителя
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <!-- Overlays Tab -->
               <div v-if="activeTab === 'overlays'" class="space-y-5">
                 <div
@@ -1430,6 +1505,7 @@ import {
   GripVertical,
   Settings,
   Layers,
+  Volume2,
 } from "lucide-vue-next";
 import draggable from "vuedraggable";
 import { templatesApi, youtubeApi } from "../api";
@@ -1501,6 +1577,7 @@ const tabs = [
   { id: "numbers", label: "Нумерация", icon: Hash },
   { id: "progress", label: "Прогресс", icon: BarChart3 },
   { id: "cta", label: "CTA", icon: MousePointerClick },
+  { id: "audio", label: "Аудио", icon: Volume2 },
   { id: "overlays", label: "Оверлеи", icon: Layers },
 ];
 
@@ -1553,6 +1630,10 @@ const editForm = reactive({
   ctaDirection: "horizontal",
   ctaGap: 8,
   ctaItems: [],
+  // Audio
+  backgroundMusicVolume: 0.12,
+  // Montage
+  maxClipDuration: 3,
   // Overlays
   overlays: [],
 });
@@ -1662,6 +1743,8 @@ function selectTemplate(template) {
     ctaDirection: template.ctaDirection,
     ctaGap: template.ctaGap,
     ctaItems: template.ctaItems || [],
+    backgroundMusicVolume: template.backgroundMusicVolume ?? 0.12,
+    maxClipDuration: template.maxClipDuration ?? 3,
     overlays: template.overlays || [],
   });
 }
@@ -1714,6 +1797,8 @@ function createNewTemplate() {
     ctaDirection: "horizontal",
     ctaGap: 8,
     ctaItems: [],
+    backgroundMusicVolume: 0.12,
+    maxClipDuration: 3,
     overlays: [],
   });
 }

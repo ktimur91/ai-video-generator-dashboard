@@ -117,6 +117,22 @@
         </span>
       </div>
 
+      <!-- Loop-скрипт (закольцованное видео) -->
+      <div class="flex items-center gap-3">
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" v-model="useLoopScript" class="sr-only peer" />
+          <div
+            class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"
+          ></div>
+          <span class="ms-3 text-sm font-medium text-gray-300">
+            🔁 Loop-сценарий
+          </span>
+        </label>
+        <span class="text-xs text-gray-500">
+          (конец перетекает в начало для 100%+ удержания)
+        </span>
+      </div>
+
       <!-- Выбор шаблона -->
       <div class="flex items-center gap-4">
         <label class="text-sm text-gray-400">Шаблон:</label>
@@ -242,6 +258,7 @@ const topic = ref("");
 const videoSource = ref("pexels");
 const useAIVideoSelection = ref(false);
 const useAIMusicSelection = ref(false);
+const useLoopScript = ref(false);
 const selectedTemplateId = ref(null);
 const templates = ref([]);
 
@@ -290,6 +307,7 @@ function handleSubmit() {
       useAIVideoSelection:
         useAIVideoSelection.value && videoSource.value !== "klipy",
       useAIMusicSelection: useAIMusicSelection.value,
+      useLoopScript: useLoopScript.value,
       templateId: selectedTemplateId.value,
     });
     topic.value = "";

@@ -1,5 +1,6 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import api, { generationApi } from "../api";
+import { useNotificationSound } from "./useNotificationSound";
 
 export function useVideos() {
   const videos = ref([]);
@@ -10,14 +11,51 @@ export function useVideos() {
 
   let pollingInterval = null;
 
+  // Звуковые уведомления
+  const { playReviewSound, playCompleteSound, playErrorSound } =
+    useNotificationSound();
+
   // Получить все видео
   async function fetchVideos() {
     try {
       isLoading.value = true;
       error.value = null;
 
+      // Сохраняем предыдущие статусы для сравнения
+      const previousStatuses = new Map(
+        videos.value.map((v) => [v.id, v.status]),
+      );
+
       const response = await api.get("/videos");
-      videos.value = response.data.videos || [];
+      const newVideos = response.data.videos || [];
+
+      // Проверяем изменения статусов и воспроизводим звуки
+      for (const video of newVideos) {
+        const prevStatus = previousStatuses.get(video.id);
+
+        if (prevStatus && prevStatus !== video.status) {
+          // Статус изменился
+          console.log(
+            `[Notification] Video ${video.id} status changed: ${prevStatus} -> ${video.status}`,
+          );
+
+          if (video.status === "AWAITING_REVIEW") {
+            // Видео готово к проверке
+            console.log("[Notification] Playing review sound...");
+            playReviewSound();
+          } else if (video.status === "COMPLETED") {
+            // Рендер завершён
+            console.log("[Notification] Playing complete sound...");
+            playCompleteSound();
+          } else if (video.status === "FAILED") {
+            // Ошибка
+            console.log("[Notification] Playing error sound...");
+            playErrorSound();
+          }
+        }
+      }
+
+      videos.value = newVideos;
       apiStatus.value = "online";
     } catch (err) {
       error.value = err.message;
@@ -34,13 +72,15 @@ export function useVideos() {
     videoSource = "pexels",
     useAIVideoSelection = false,
     useAIMusicSelection = false,
+    useLoopScript = false,
     templateId = null,
   ) {
-    // Поддержка как строки, так и объекта { topic, videoSource, useAIVideoSelection, useAIMusicSelection, templateId }
+    // Поддержка как строки, так и объекта { topic, videoSource, useAIVideoSelection, useAIMusicSelection, useLoopScript, templateId }
     let topicText = topic;
     let source = videoSource;
     let aiVideoSelection = useAIVideoSelection;
     let aiMusicSelection = useAIMusicSelection;
+    let loopScript = useLoopScript;
     let selectedTemplateId = templateId;
 
     if (typeof topic === "object" && topic !== null) {
@@ -48,6 +88,7 @@ export function useVideos() {
       source = topic.videoSource || "pexels";
       aiVideoSelection = topic.useAIVideoSelection || false;
       aiMusicSelection = topic.useAIMusicSelection || false;
+      loopScript = topic.useLoopScript || false;
       selectedTemplateId = topic.templateId || null;
     }
 
@@ -65,6 +106,7 @@ export function useVideos() {
         videoSource: source,
         useAIVideoSelection: aiVideoSelection,
         useAIMusicSelection: aiMusicSelection,
+        useLoopScript: loopScript,
         templateId: selectedTemplateId,
       });
 

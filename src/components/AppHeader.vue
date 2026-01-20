@@ -3,46 +3,69 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
         <!-- Logo & Title -->
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-primary-500/20 rounded-xl">
-            <Video class="w-6 h-6 text-primary-400" />
+        <div class="flex items-center gap-5">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-primary-500/20 rounded-xl">
+              <Video class="w-6 h-6 text-primary-400" />
+            </div>
+            <div>
+              <h1 class="text-lg font-bold text-white">YouTube AI Generator</h1>
+              <p class="text-xs text-gray-400">Shorts Automation</p>
+            </div>
           </div>
-          <div>
-            <h1 class="text-lg font-bold text-white">YouTube AI Generator</h1>
-            <p class="text-xs text-gray-400">Shorts Automation</p>
+
+          <div class="flex items-center gap-3">
+            <!-- Voice Settings Button -->
+            <button
+              @click="$emit('openVoiceSettings')"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 transition-colors"
+              title="Настройки голосов"
+            >
+              <Mic class="w-4 h-4 text-purple-400" />
+              <span class="text-sm text-purple-400 hidden sm:inline"
+                >Голоса</span
+              >
+            </button>
+
+            <!-- YouTube Accounts Button -->
+            <button
+              @click="$emit('openYouTubeAccounts')"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors"
+              title="YouTube аккаунты"
+            >
+              <Youtube class="w-4 h-4 text-red-400" />
+              <span class="text-sm text-red-400 hidden sm:inline">YouTube</span>
+            </button>
+
+            <!-- Templates Button -->
+            <button
+              @click="$emit('openTemplates')"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 transition-colors"
+              title="Шаблоны видео"
+            >
+              <Palette class="w-4 h-4 text-pink-400" />
+              <span class="text-sm text-pink-400 hidden sm:inline"
+                >Шаблоны</span
+              >
+            </button>
           </div>
         </div>
 
         <!-- API Status -->
         <div class="flex items-center gap-2">
-          <!-- Voice Settings Button -->
+          <!-- Sound Notifications Toggle -->
           <button
-            @click="$emit('openVoiceSettings')"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 transition-colors"
-            title="Настройки голосов"
+            @click="toggleSound"
+            :class="[
+              'flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors',
+              soundEnabled
+                ? 'bg-green-500/10 hover:bg-green-500/20 border-green-500/20'
+                : 'bg-gray-500/10 hover:bg-gray-500/20 border-gray-500/20',
+            ]"
+            :title="soundEnabled ? 'Звуки включены' : 'Звуки выключены'"
           >
-            <Mic class="w-4 h-4 text-purple-400" />
-            <span class="text-sm text-purple-400 hidden sm:inline">Голоса</span>
-          </button>
-
-          <!-- YouTube Accounts Button -->
-          <button
-            @click="$emit('openYouTubeAccounts')"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors"
-            title="YouTube аккаунты"
-          >
-            <Youtube class="w-4 h-4 text-red-400" />
-            <span class="text-sm text-red-400 hidden sm:inline">YouTube</span>
-          </button>
-
-          <!-- Templates Button -->
-          <button
-            @click="$emit('openTemplates')"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 transition-colors"
-            title="Шаблоны видео"
-          >
-            <Palette class="w-4 h-4 text-pink-400" />
-            <span class="text-sm text-pink-400 hidden sm:inline">Шаблоны</span>
+            <Volume2 v-if="soundEnabled" class="w-4 h-4 text-green-400" />
+            <VolumeX v-else class="w-4 h-4 text-gray-400" />
           </button>
 
           <div
@@ -79,7 +102,18 @@
 
 <script setup>
 import { computed } from "vue";
-import { Video, RefreshCw, Mic, Youtube, Palette } from "lucide-vue-next";
+import {
+  Video,
+  RefreshCw,
+  Mic,
+  Youtube,
+  Palette,
+  Volume2,
+  VolumeX,
+} from "lucide-vue-next";
+import { useNotificationSound } from "../composables/useNotificationSound";
+
+const { soundEnabled, toggleSound } = useNotificationSound();
 
 const props = defineProps({
   status: {

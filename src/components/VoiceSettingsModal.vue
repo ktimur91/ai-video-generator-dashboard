@@ -8,7 +8,7 @@
     >
       <!-- Modal -->
       <div
-        class="relative w-full max-w-5xl max-h-[90vh] bg-gray-900 rounded-2xl shadow-2xl border border-gray-800 flex flex-col overflow-hidden"
+        class="relative w-full max-w-5xl h-[90vh] bg-gray-900 rounded-2xl shadow-2xl border border-gray-800 flex flex-col overflow-hidden"
       >
         <!-- Header -->
         <div
@@ -114,7 +114,7 @@
                   <optgroup label="🇷🇺 Русские">
                     <option
                       v-for="v in availableVoices.filter(
-                        (v) => v.lang === 'ru-RU'
+                        (v) => v.lang === 'ru-RU',
                       )"
                       :key="v.id"
                       :value="v.id"
@@ -125,7 +125,7 @@
                   <optgroup label="🇺🇸 Английские (US)">
                     <option
                       v-for="v in availableVoices.filter(
-                        (v) => v.lang === 'en-US'
+                        (v) => v.lang === 'en-US',
                       )"
                       :key="v.id"
                       :value="v.id"
@@ -136,7 +136,7 @@
                   <optgroup label="🇬🇧 Английские (UK)">
                     <option
                       v-for="v in availableVoices.filter(
-                        (v) => v.lang === 'en-GB'
+                        (v) => v.lang === 'en-GB',
                       )"
                       :key="v.id"
                       :value="v.id"
@@ -147,7 +147,7 @@
                   <optgroup label="🇺🇦 Украинские">
                     <option
                       v-for="v in availableVoices.filter(
-                        (v) => v.lang === 'uk-UA'
+                        (v) => v.lang === 'uk-UA',
                       )"
                       :key="v.id"
                       :value="v.id"
@@ -386,7 +386,7 @@ watch(
     if (isOpen) {
       await loadVoices();
     }
-  }
+  },
 );
 
 async function loadVoices() {
