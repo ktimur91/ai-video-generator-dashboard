@@ -14,11 +14,29 @@
       <div
         class="flex items-center justify-between p-4 border-b border-gray-800"
       >
-        <h2 class="text-xl font-bold text-white">
-          {{
-            isReviewMode ? "Проверка и одобрение" : "Редактирование видео-фонов"
-          }}
-        </h2>
+        <div class="flex items-center gap-3">
+          <h2 class="text-xl font-bold text-white">
+            {{
+              isReviewMode
+                ? "Проверка и одобрение"
+                : "Редактирование видео-фонов"
+            }}
+          </h2>
+          <span
+            v-if="hasDraft"
+            class="flex items-center gap-2 px-2 py-0.5 bg-yellow-600/20 border border-yellow-600/50 rounded-lg text-xs text-yellow-400"
+            title="Есть несохранённые изменения из предыдущей сессии"
+          >
+            📝 Восстановлено
+            <button
+              @click="discardDraft"
+              class="hover:text-yellow-200 underline"
+              title="Сбросить и загрузить оригинал"
+            >
+              Сбросить
+            </button>
+          </span>
+        </div>
         <button
           @click="close"
           class="p-2 hover:bg-gray-800 rounded-xl transition-colors"
@@ -651,6 +669,116 @@ const props = defineProps<{
 
 const emit = defineEmits(["close", "save", "approve"]);
 
+// LocalStorage key для автосохранения
+const getStorageKey = (videoId: string) => `video-editor-draft-${videoId}`;
+
+interface DraftData {
+  segments: any[];
+  selectedMusicTrack: MusicTrack | null;
+  selectedVoiceConfigId: string;
+  selectedTemplateId: string | null;
+  savedAt: number;
+}
+
+function saveDraft() {
+  if (!props.video?.id) return;
+
+  const draft: DraftData = {
+    segments: localSegments.value,
+    selectedMusicTrack: selectedMusicTrack.value,
+    selectedVoiceConfigId: selectedVoiceConfigId.value,
+    selectedTemplateId: selectedTemplateId.value,
+    savedAt: Date.now(),
+  };
+
+  try {
+    localStorage.setItem(getStorageKey(props.video.id), JSON.stringify(draft));
+    console.log("[AutoSave] Draft saved for video:", props.video.id);
+  } catch (e) {
+    console.error("[AutoSave] Failed to save draft:", e);
+  }
+}
+
+function loadDraft(): DraftData | null {
+  if (!props.video?.id) return null;
+
+  try {
+    const data = localStorage.getItem(getStorageKey(props.video.id));
+    if (data) {
+      const draft = JSON.parse(data) as DraftData;
+      console.log(
+        "[AutoSave] Draft loaded for video:",
+        props.video.id,
+        "saved at:",
+        new Date(draft.savedAt).toLocaleString(),
+      );
+      return draft;
+    }
+  } catch (e) {
+    console.error("[AutoSave] Failed to load draft:", e);
+  }
+  return null;
+}
+
+function clearDraft() {
+  if (!props.video?.id) return;
+
+  try {
+    localStorage.removeItem(getStorageKey(props.video.id));
+    console.log("[AutoSave] Draft cleared for video:", props.video.id);
+  } catch (e) {
+    console.error("[AutoSave] Failed to clear draft:", e);
+  }
+}
+
+// Сбросить черновик и загрузить оригинальные данные
+function discardDraft() {
+  if (!props.video) return;
+
+  clearDraft();
+  hasDraft.value = false;
+
+  // Восстанавливаем данные из видео
+  const segments =
+    typeof props.video.segments === "string"
+      ? JSON.parse(props.video.segments)
+      : props.video.segments;
+  localSegments.value = JSON.parse(JSON.stringify(segments));
+
+  // Восстанавливаем музыку
+  if (props.video.backgroundMusicData) {
+    try {
+      const musicData =
+        typeof props.video.backgroundMusicData === "string"
+          ? JSON.parse(props.video.backgroundMusicData)
+          : props.video.backgroundMusicData;
+      selectedMusicTrack.value = musicData;
+    } catch (e) {
+      selectedMusicTrack.value = null;
+    }
+  } else {
+    selectedMusicTrack.value = null;
+  }
+
+  // Восстанавливаем голос
+  if (props.video?.voiceConfigId) {
+    selectedVoiceConfigId.value = props.video.voiceConfigId;
+  } else {
+    const defaultVoice = voiceConfigList.value.find((v) => v.isDefault);
+    selectedVoiceConfigId.value = defaultVoice?.id || "";
+  }
+
+  // Восстанавливаем шаблон
+  if (props.video?.templateId) {
+    selectedTemplateId.value = props.video.templateId;
+  } else {
+    const defaultTemplate = templatesList.value.find((t) => t.isDefault);
+    selectedTemplateId.value = defaultTemplate?.id || null;
+  }
+
+  console.log("[AutoSave] Draft discarded, original data restored");
+}
+
 const sources = [
   { id: "pexels", name: "Pexels" },
   { id: "pixabay", name: "Pixabay" },
@@ -666,6 +794,7 @@ const verticalOnly = ref(true);
 const isSearching = ref(false);
 const isEditingText = ref(false);
 const editingTextValue = ref("");
+const hasDraft = ref(false); // Индикатор восстановленного черновика
 
 // Фоновая музыка
 const selectedMusicTrack = ref<MusicTrack | null>(null);
@@ -828,28 +957,46 @@ watch(
         typeof props.video.segments === "string"
           ? JSON.parse(props.video.segments)
           : props.video.segments;
-      localSegments.value = JSON.parse(JSON.stringify(segments));
+
+      // Проверяем есть ли сохранённый черновик
+      const draft = loadDraft();
+      hasDraft.value = !!draft; // Показываем индикатор восстановления
+
+      if (draft) {
+        // Восстанавливаем данные из черновика
+        localSegments.value = draft.segments;
+        selectedMusicTrack.value = draft.selectedMusicTrack;
+        // Голос и шаблон восстановим после загрузки списков
+        console.log(
+          "[AutoSave] Restored draft from",
+          new Date(draft.savedAt).toLocaleString(),
+        );
+      } else {
+        // Загружаем данные из видео
+        localSegments.value = JSON.parse(JSON.stringify(segments));
+
+        // Устанавливаем текущую фоновую музыку из backgroundMusicData
+        if (props.video.backgroundMusicData) {
+          try {
+            const musicData =
+              typeof props.video.backgroundMusicData === "string"
+                ? JSON.parse(props.video.backgroundMusicData)
+                : props.video.backgroundMusicData;
+            selectedMusicTrack.value = musicData;
+          } catch (e) {
+            console.error("Failed to parse background music data:", e);
+            selectedMusicTrack.value = null;
+          }
+        } else {
+          selectedMusicTrack.value = null;
+        }
+      }
+
       originalSegments.value = JSON.parse(JSON.stringify(segments));
       selectedSegmentIndex.value = null;
       searchQuery.value = "";
       isEditingText.value = false;
       editingTextValue.value = "";
-
-      // Устанавливаем текущую фоновую музыку из backgroundMusicData
-      if (props.video.backgroundMusicData) {
-        try {
-          const musicData =
-            typeof props.video.backgroundMusicData === "string"
-              ? JSON.parse(props.video.backgroundMusicData)
-              : props.video.backgroundMusicData;
-          selectedMusicTrack.value = musicData;
-        } catch (e) {
-          console.error("Failed to parse background music data:", e);
-          selectedMusicTrack.value = null;
-        }
-      } else {
-        selectedMusicTrack.value = null;
-      }
 
       // Сбрасываем результаты поиска при открытии модалки
       sourceResults.pexels = {
@@ -881,8 +1028,11 @@ watch(
         try {
           const response = await api.get("/voices");
           voiceConfigList.value = response.data.voices || [];
-          // Устанавливаем текущий голос видео или голос по умолчанию
-          if (props.video?.voiceConfigId) {
+
+          // Восстанавливаем голос из черновика или устанавливаем из видео
+          if (draft?.selectedVoiceConfigId) {
+            selectedVoiceConfigId.value = draft.selectedVoiceConfigId;
+          } else if (props.video?.voiceConfigId) {
             selectedVoiceConfigId.value = props.video.voiceConfigId;
           } else {
             const defaultVoice = voiceConfigList.value.find((v) => v.isDefault);
@@ -898,8 +1048,11 @@ watch(
         try {
           const response = await templatesApi.getAll();
           templatesList.value = response.data.templates || [];
-          // Устанавливаем текущий шаблон видео или шаблон по умолчанию
-          if (props.video?.templateId) {
+
+          // Восстанавливаем шаблон из черновика или устанавливаем из видео
+          if (draft?.selectedTemplateId !== undefined) {
+            selectedTemplateId.value = draft.selectedTemplateId;
+          } else if (props.video?.templateId) {
             selectedTemplateId.value = props.video.templateId;
           } else {
             const defaultTemplate = templatesList.value.find(
@@ -912,6 +1065,36 @@ watch(
         }
       }
     }
+  },
+);
+
+// Автосохранение при изменении данных
+watch(
+  () => localSegments.value,
+  () => {
+    if (props.isOpen) saveDraft();
+  },
+  { deep: true },
+);
+
+watch(
+  () => selectedMusicTrack.value,
+  () => {
+    if (props.isOpen) saveDraft();
+  },
+);
+
+watch(
+  () => selectedVoiceConfigId.value,
+  () => {
+    if (props.isOpen) saveDraft();
+  },
+);
+
+watch(
+  () => selectedTemplateId.value,
+  () => {
+    if (props.isOpen) saveDraft();
   },
 );
 
@@ -1212,6 +1395,9 @@ async function saveAndRender() {
   const voiceChanged =
     selectedVoiceConfigId.value !== (props.video?.voiceConfigId || null);
 
+  // Очищаем черновик перед сохранением
+  clearDraft();
+
   emit("save", {
     segments: localSegments.value,
     voiceConfigId: selectedVoiceConfigId.value || null,
@@ -1223,6 +1409,9 @@ async function saveAndRender() {
 }
 
 async function approveAndContinue() {
+  // Очищаем черновик при одобрении
+  clearDraft();
+
   emit("approve", {
     segments: localSegments.value,
     backgroundMusicData: selectedMusicTrack.value || null,

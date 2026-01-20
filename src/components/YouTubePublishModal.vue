@@ -426,7 +426,7 @@ watch(
         }
       }
 
-      const baseHashtags = "#shorts #BrainBites #факты";
+      const baseHashtags = "#shorts #факты";
       publishDescription.value =
         `${newVideo.title}\n\n${baseHashtags} ${thematicHashtags}`.trim();
 
