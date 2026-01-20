@@ -306,6 +306,29 @@ export function useVideos() {
     }
   }
 
+  // Отвязать видео от YouTube (для повторной публикации)
+  async function unlinkYoutube(videoId) {
+    try {
+      error.value = null;
+
+      const response = await api.post(`/videos/${videoId}/unlink-youtube`);
+
+      // Обновляем видео в списке
+      if (response.data.video) {
+        const index = videos.value.findIndex((v) => v.id === videoId);
+        if (index !== -1) {
+          videos.value[index] = response.data.video;
+        }
+      }
+
+      return true;
+    } catch (err) {
+      error.value = err.response?.data?.message || err.message;
+      console.error("Failed to unlink YouTube:", err);
+      return false;
+    }
+  }
+
   // Одобрить видео и продолжить генерацию аудио
   async function approveVideo(
     videoId,
@@ -424,6 +447,7 @@ export function useVideos() {
     regenerateVideo,
     stopGeneration,
     approveVideo,
+    unlinkYoutube,
     checkApiStatus,
     startPolling,
     stopPolling,

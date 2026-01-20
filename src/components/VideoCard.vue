@@ -212,21 +212,29 @@
         </button>
 
         <!-- Published on YouTube indicator -->
-        <a
-          v-if="video.youtubeId"
-          :href="video.youtubeUrl"
-          target="_blank"
-          class="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
-          title="Открыть на YouTube"
-        >
-          <Youtube class="w-4 h-4" />
-          <span
-            v-if="video.youtubeChannel"
-            class="text-xs font-medium truncate max-w-[100px]"
+        <div v-if="video.youtubeId" class="flex items-center">
+          <a
+            :href="video.youtubeUrl"
+            target="_blank"
+            class="flex items-center gap-2 px-3 py-2 rounded-l-xl bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
+            title="Открыть на YouTube"
           >
-            {{ video.youtubeChannel.title }}
-          </span>
-        </a>
+            <Youtube class="w-4 h-4" />
+            <span
+              v-if="video.youtubeChannel"
+              class="text-xs font-medium truncate max-w-[100px]"
+            >
+              {{ video.youtubeChannel.title }}
+            </span>
+          </a>
+          <button
+            @click="$emit('unlinkYoutube', video.id)"
+            class="p-2 rounded-r-xl bg-red-500/20 text-red-500/60 hover:text-red-400 hover:bg-red-500/30 transition-colors border-l border-red-500/30"
+            title="Отвязать от YouTube (для повторной публикации)"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
 
         <button
           v-else-if="video.status === 'FAILED' && !isEditing"
@@ -306,6 +314,7 @@ const emit = defineEmits([
   "update",
   "retryFromStep",
   "publish",
+  "unlinkYoutube",
   "stop",
   "review",
   "versions",

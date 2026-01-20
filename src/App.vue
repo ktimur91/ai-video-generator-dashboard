@@ -40,6 +40,7 @@
         @update="handleUpdate"
         @retryFromStep="handleRetryFromStep"
         @publish="openPublishModal"
+        @unlinkYoutube="handleUnlinkYoutube"
         @stop="handleStop"
         @review="openReviewEditor"
         @versions="openVersionsModal"
@@ -128,6 +129,7 @@ const {
   regenerateVideo,
   stopGeneration,
   approveVideo,
+  unlinkYoutube,
 } = useVideos();
 
 // Background editor state
@@ -310,5 +312,15 @@ async function handleRetryFromStep(videoId, fromStep) {
 
 async function handleStop(videoId) {
   await stopGeneration(videoId);
+}
+
+async function handleUnlinkYoutube(videoId) {
+  if (
+    confirm(
+      "Отвязать видео от YouTube? После этого вы сможете опубликовать его повторно.",
+    )
+  ) {
+    await unlinkYoutube(videoId);
+  }
 }
 </script>

@@ -73,6 +73,7 @@
         @update="(id, data) => $emit('update', id, data)"
         @retryFromStep="(id, step) => $emit('retryFromStep', id, step)"
         @publish="$emit('publish', $event)"
+        @unlinkYoutube="$emit('unlinkYoutube', $event)"
         @stop="$emit('stop', $event)"
         @review="$emit('review', $event)"
         @versions="$emit('versions', $event)"
@@ -101,6 +102,7 @@ defineEmits([
   "update",
   "retryFromStep",
   "publish",
+  "unlinkYoutube",
   "stop",
   "review",
   "versions",
