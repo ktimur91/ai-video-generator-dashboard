@@ -336,6 +336,7 @@ export function useVideos() {
     backgroundMusicData,
     voiceConfigId,
     templateId,
+    useLoopScript,
   ) {
     try {
       error.value = null;
@@ -356,6 +357,7 @@ export function useVideos() {
         backgroundMusicData,
         voiceConfigId,
         templateId,
+        useLoopScript,
       });
 
       // Сервер теперь отвечает сразу с минимальными данными

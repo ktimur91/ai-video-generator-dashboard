@@ -57,7 +57,9 @@
               'w-full text-left py-1 px-2 rounded-xl transition-all',
               selectedSegmentIndex === index
                 ? 'bg-primary-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700',
+                : !segmentVideoRequirements[index]?.isEnough
+                  ? 'bg-red-900/30 border border-red-500/50 text-gray-300 hover:bg-red-900/50'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700',
             ]"
           >
             <div class="flex items-center gap-2">
@@ -68,17 +70,20 @@
                 <p class="font-medium truncate">
                   {{ getSegmentLabel(segment, index) }}
                 </p>
-                <!-- <p class="text-xs opacity-70 truncate">
-                  {{ segment.text?.substring(0, 40) }}...
-                </p> -->
+                <p
+                  v-if="!segmentVideoRequirements[index]?.isEnough"
+                  class="text-xs text-red-400"
+                >
+                  +{{ segmentVideoRequirements[index]?.missing }} видео
+                </p>
               </div>
               <span
-                v-if="segment.stockVideo?.url"
+                v-if="segmentVideoRequirements[index]?.isEnough"
                 class="text-green-400 text-md"
               >
                 ✓
               </span>
-              <span v-else class="text-red-400 text-md">✗</span>
+              <span v-else class="text-red-400 text-md">⚠</span>
             </div>
           </button>
         </div>
@@ -147,10 +152,35 @@
             <div class="flex flex-col gap-2 p-4 pb-0">
               <div class="flex items-center justify-between">
                 <h3 class="text-sm font-medium text-gray-400">Видео фоны</h3>
-                <span class="text-xs text-gray-500">
-                  {{ currentSegmentVideos.length }} видео
-                </span>
+                <div class="flex items-center gap-2">
+                  <span
+                    v-if="
+                      currentSegmentRequirement &&
+                      !currentSegmentRequirement.isEnough
+                    "
+                    class="text-xs text-red-400 bg-red-500/20 px-2 py-0.5 rounded"
+                  >
+                    нужно мин.
+                    {{ currentSegmentRequirement.requiredVideos }} видео
+                  </span>
+                  <span
+                    :class="[
+                      'text-xs px-2 py-0.5 rounded',
+                      currentSegmentRequirement?.isEnough
+                        ? 'text-green-400 bg-green-500/20'
+                        : 'text-gray-500',
+                    ]"
+                  >
+                    {{ currentSegmentVideos.length }} /
+                    {{ currentSegmentRequirement?.requiredVideos || "?" }}
+                  </span>
+                </div>
               </div>
+
+              <!-- Max clip duration hint -->
+              <p class="text-xs text-gray-500">
+                📎 Шаблон: макс. {{ maxClipDuration }} сек на клип
+              </p>
 
               <!-- Video List with Drag & Drop -->
               <draggable
@@ -543,10 +573,41 @@
                 :key="template.id"
                 :value="template.id"
               >
-                {{ template.name }}
+                {{ template.name }} ({{ template.maxClipDuration || 3 }}с)
                 <template v-if="template.isDefault"> ⭐</template>
               </option>
             </select>
+
+            <!-- Warning if segments missing videos -->
+            <span
+              v-if="segmentsWithMissingVideos.length > 0"
+              class="flex items-center gap-1 text-xs text-red-400 bg-red-500/20 px-2 py-1 rounded"
+              :title="`Сегменты с нехваткой видео: ${segmentsWithMissingVideos.map((s) => s.index + 1).join(', ')}`"
+            >
+              ⚠ {{ segmentsWithMissingVideos.length }} сегм. без видео
+            </span>
+
+            <!-- Divider -->
+            <div class="w-px h-6 bg-gray-700 mx-2"></div>
+
+            <!-- Loop toggle -->
+            <label
+              class="flex items-center gap-2 cursor-pointer select-none"
+              title="Бесшовный цикл видео без паузы между концом и началом"
+            >
+              <Repeat class="w-4 h-4 text-cyan-400" />
+              <span class="text-sm text-gray-300">Loop</span>
+              <div
+                class="relative w-10 h-5 rounded-full transition-colors"
+                :class="isLoopEnabled ? 'bg-cyan-600' : 'bg-gray-600'"
+                @click="isLoopEnabled = !isLoopEnabled"
+              >
+                <div
+                  class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
+                  :class="{ 'translate-x-5': isLoopEnabled }"
+                ></div>
+              </div>
+            </label>
           </div>
         </div>
 
@@ -608,6 +669,7 @@ import {
   Library,
   GripVertical,
   Palette,
+  Repeat,
 } from "lucide-vue-next";
 import draggable from "vuedraggable";
 import api, { templatesApi } from "../api";
@@ -816,9 +878,59 @@ interface Template {
   id: string;
   name: string;
   isDefault: boolean;
+  maxClipDuration: number;
 }
 const templatesList = ref<Template[]>([]);
 const selectedTemplateId = ref<string | null>(null);
+
+// Loop mode (бесшовный цикл видео)
+const isLoopEnabled = ref(false);
+
+// Computed: текущий шаблон
+const currentTemplate = computed(() => {
+  if (!selectedTemplateId.value) return null;
+  return (
+    templatesList.value.find((t) => t.id === selectedTemplateId.value) || null
+  );
+});
+
+// Computed: максимальная длительность клипа из шаблона
+const maxClipDuration = computed(
+  () => currentTemplate.value?.maxClipDuration ?? 3,
+);
+
+// Computed: требования по видео для каждого сегмента
+const segmentVideoRequirements = computed(() => {
+  return localSegments.value.map((segment, index) => {
+    const duration = segment.estimatedDuration || segment.audioDuration || 5;
+    const requiredVideos = Math.ceil(duration / maxClipDuration.value);
+    const currentVideos =
+      segment.stockVideos?.length || (segment.stockVideo?.url ? 1 : 0);
+    const isEnough = currentVideos >= requiredVideos;
+    const missing = requiredVideos - currentVideos;
+
+    return {
+      index,
+      type: segment.type,
+      duration,
+      requiredVideos,
+      currentVideos,
+      isEnough,
+      missing: missing > 0 ? missing : 0,
+    };
+  });
+});
+
+// Computed: есть ли сегменты с нехваткой видео
+const segmentsWithMissingVideos = computed(() => {
+  return segmentVideoRequirements.value.filter((req) => !req.isEnough);
+});
+
+// Computed: требования для текущего сегмента
+const currentSegmentRequirement = computed(() => {
+  if (selectedSegmentIndex.value === null) return null;
+  return segmentVideoRequirements.value[selectedSegmentIndex.value] || null;
+});
 
 // Результаты поиска для каждого источника (сохраняются отдельно)
 const sourceResults = reactive<Record<string, SourceResults>>({
@@ -1063,6 +1175,9 @@ watch(
         } catch (e) {
           console.error("Failed to load templates:", e);
         }
+
+        // Устанавливаем режим loop из видео
+        isLoopEnabled.value = props.video?.useLoopScript || false;
       }
     }
   },
@@ -1404,6 +1519,7 @@ async function saveAndRender() {
     backgroundMusicData: selectedMusicTrack.value || null,
     regenerateAudio: voiceChanged,
     templateId: selectedTemplateId.value || null,
+    useLoopScript: isLoopEnabled.value,
   });
   close();
 }
@@ -1417,6 +1533,7 @@ async function approveAndContinue() {
     backgroundMusicData: selectedMusicTrack.value || null,
     voiceConfigId: selectedVoiceConfigId.value || null,
     templateId: selectedTemplateId.value || null,
+    useLoopScript: isLoopEnabled.value,
   });
   close();
 }

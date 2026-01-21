@@ -272,6 +272,47 @@
       </div>
     </div>
   </div>
+
+  <!-- Video Player Modal -->
+  <Teleport to="body">
+    <div
+      v-if="isPlayerOpen"
+      class="fixed inset-0 bg-black/95 flex items-center justify-center z-[100]"
+      @click.self="closePlayer"
+    >
+      <div class="relative w-full max-w-md mx-4">
+        <!-- Close button -->
+        <button
+          @click="closePlayer"
+          class="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+        >
+          <X class="w-8 h-8" />
+        </button>
+
+        <!-- Video title with loop indicator -->
+        <div class="absolute -top-12 left-0 text-white flex items-center gap-2">
+          <span class="text-lg font-semibold truncate max-w-[250px] block">{{
+            video.title
+          }}</span>
+          <span
+            v-if="video.useLoopScript"
+            class="text-xs text-cyan-400 flex items-center gap-1"
+          >
+            <Repeat class="w-3 h-3" /> Loop
+          </span>
+        </div>
+
+        <!-- Video player -->
+        <video
+          :src="API_URL + '/' + video.videoPath"
+          class="w-full rounded-xl shadow-2xl"
+          controls
+          autoplay
+          :loop="video.useLoopScript"
+        ></video>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -298,6 +339,7 @@ import {
   Eye,
   ThumbsUp,
   Layers,
+  Repeat,
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -325,6 +367,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 const isEditing = ref(false);
 const editTitle = ref("");
 const editScript = ref("");
+const isPlayerOpen = ref(false);
 
 const canEdit = computed(() => {
   return !["GENERATING_ASSETS", "RENDERING"].includes(props.video.status);
@@ -510,8 +553,12 @@ function formatDate(dateString) {
 
 function openVideo() {
   if (props.video.videoPath) {
-    window.open(API_URL + "/" + props.video.videoPath, "_blank");
+    isPlayerOpen.value = true;
   }
+}
+
+function closePlayer() {
+  isPlayerOpen.value = false;
 }
 </script>
 

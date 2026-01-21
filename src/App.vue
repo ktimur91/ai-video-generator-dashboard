@@ -228,7 +228,7 @@ function handlePublished() {
 async function handleSaveBackgrounds(data) {
   if (!editorVideo.value) return;
 
-  // data содержит { segments, voiceConfigId, backgroundMusicData, regenerateAudio }
+  // data содержит { segments, voiceConfigId, backgroundMusicData, regenerateAudio, useLoopScript }
   closeBackgroundEditor();
 
   if (data.regenerateAudio) {
@@ -237,12 +237,14 @@ async function handleSaveBackgrounds(data) {
       segments: data.segments,
       voiceConfigId: data.voiceConfigId,
       backgroundMusicData: data.backgroundMusicData,
+      useLoopScript: data.useLoopScript,
     });
   } else {
     // Только изменились сегменты/музыка - обновляем и рендерим
     const success = await updateSegments(editorVideo.value.id, {
       segments: data.segments,
       backgroundMusicData: data.backgroundMusicData,
+      useLoopScript: data.useLoopScript,
     });
     if (success) {
       await startRender(editorVideo.value.id);
@@ -258,6 +260,7 @@ async function handleApproveAndContinue({
   backgroundMusicData,
   voiceConfigId,
   templateId,
+  useLoopScript,
 }) {
   if (!editorVideo.value) return;
 
@@ -268,6 +271,7 @@ async function handleApproveAndContinue({
       voiceConfigId,
       backgroundMusicData,
       templateId,
+      useLoopScript,
     });
     closeBackgroundEditor();
   } else {
@@ -277,6 +281,7 @@ async function handleApproveAndContinue({
       backgroundMusicData,
       voiceConfigId,
       templateId,
+      useLoopScript,
     );
     if (result) {
       closeBackgroundEditor();
