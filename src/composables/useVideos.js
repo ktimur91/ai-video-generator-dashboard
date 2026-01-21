@@ -74,14 +74,18 @@ export function useVideos() {
     useAIMusicSelection = false,
     useLoopScript = false,
     templateId = null,
+    aiProvider = null,
+    aiModel = null,
   ) {
-    // Поддержка как строки, так и объекта { topic, videoSource, useAIVideoSelection, useAIMusicSelection, useLoopScript, templateId }
+    // Поддержка как строки, так и объекта { topic, videoSource, useAIVideoSelection, useAIMusicSelection, useLoopScript, templateId, aiProvider, aiModel }
     let topicText = topic;
     let source = videoSource;
     let aiVideoSelection = useAIVideoSelection;
     let aiMusicSelection = useAIMusicSelection;
     let loopScript = useLoopScript;
     let selectedTemplateId = templateId;
+    let provider = aiProvider;
+    let model = aiModel;
 
     if (typeof topic === "object" && topic !== null) {
       topicText = topic.topic;
@@ -90,6 +94,8 @@ export function useVideos() {
       aiMusicSelection = topic.useAIMusicSelection || false;
       loopScript = topic.useLoopScript || false;
       selectedTemplateId = topic.templateId || null;
+      provider = topic.aiProvider || null;
+      model = topic.aiModel || null;
     }
 
     if (!topicText || !topicText.trim()) {
@@ -108,6 +114,8 @@ export function useVideos() {
         useAIMusicSelection: aiMusicSelection,
         useLoopScript: loopScript,
         templateId: selectedTemplateId,
+        aiProvider: provider,
+        aiModel: model,
       });
 
       // Добавляем новое видео в начало списка

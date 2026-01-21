@@ -59,6 +59,12 @@
                   <span class="font-medium text-white">{{ voice.name }}</span>
                   <div class="flex items-center gap-1">
                     <span
+                      class="px-2 py-0.5 text-xs rounded-full"
+                      :class="getTtsProviderBadgeClass(voice.ttsProvider)"
+                    >
+                      {{ getTtsProviderLabel(voice.ttsProvider) }}
+                    </span>
+                    <span
                       v-if="voice.isDefault"
                       class="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full"
                     >
@@ -102,6 +108,29 @@
                 />
               </div>
 
+              <!-- TTS Provider Selection -->
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                  TTS Провайдер
+                </label>
+                <div class="flex gap-2">
+                  <button
+                    v-for="provider in ttsProviders"
+                    :key="provider.id"
+                    @click="selectTtsProvider(provider.id)"
+                    :class="[
+                      'flex-1 px-4 py-2.5 rounded-lg border font-medium transition-all',
+                      editingVoice.ttsProvider === provider.id
+                        ? 'bg-purple-600 border-purple-500 text-white'
+                        : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600',
+                    ]"
+                  >
+                    <div class="text-sm">{{ provider.name }}</div>
+                    <div class="text-xs opacity-70">{{ provider.desc }}</div>
+                  </button>
+                </div>
+              </div>
+
               <!-- Voice Selection -->
               <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">
@@ -111,131 +140,163 @@
                   v-model="editingVoice.voice"
                   class="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
                 >
-                  <optgroup label="🇷🇺 Русские">
+                  <!-- Edge TTS voices with language groups -->
+                  <template v-if="editingVoice.ttsProvider === 'edge'">
+                    <optgroup label="🇷🇺 Русские">
+                      <option
+                        v-for="v in currentProviderVoices.filter(
+                          (v) => v.lang === 'ru-RU',
+                        )"
+                        :key="v.id"
+                        :value="v.id"
+                      >
+                        {{ v.name }} ({{ v.gender === "male" ? "♂" : "♀" }})
+                      </option>
+                    </optgroup>
+                    <optgroup label="🇺🇸 Английские (US)">
+                      <option
+                        v-for="v in currentProviderVoices.filter(
+                          (v) => v.lang === 'en-US',
+                        )"
+                        :key="v.id"
+                        :value="v.id"
+                      >
+                        {{ v.name }} ({{ v.gender === "male" ? "♂" : "♀" }})
+                      </option>
+                    </optgroup>
+                    <optgroup label="🇬🇧 Английские (UK)">
+                      <option
+                        v-for="v in currentProviderVoices.filter(
+                          (v) => v.lang === 'en-GB',
+                        )"
+                        :key="v.id"
+                        :value="v.id"
+                      >
+                        {{ v.name }} ({{ v.gender === "male" ? "♂" : "♀" }})
+                      </option>
+                    </optgroup>
+                    <optgroup label="🇺🇦 Украинские">
+                      <option
+                        v-for="v in currentProviderVoices.filter(
+                          (v) => v.lang === 'uk-UA',
+                        )"
+                        :key="v.id"
+                        :value="v.id"
+                      >
+                        {{ v.name }} ({{ v.gender === "male" ? "♂" : "♀" }})
+                      </option>
+                    </optgroup>
+                  </template>
+                  <!-- OpenAI / Gemini voices - simple list -->
+                  <template v-else>
                     <option
-                      v-for="v in availableVoices.filter(
-                        (v) => v.lang === 'ru-RU',
-                      )"
+                      v-for="v in currentProviderVoices"
                       :key="v.id"
                       :value="v.id"
                     >
-                      {{ v.name }} ({{ v.gender === "male" ? "♂" : "♀" }})
+                      {{ v.name }}{{ v.desc ? ` - ${v.desc}` : "" }}
                     </option>
-                  </optgroup>
-                  <optgroup label="🇺🇸 Английские (US)">
-                    <option
-                      v-for="v in availableVoices.filter(
-                        (v) => v.lang === 'en-US',
-                      )"
-                      :key="v.id"
-                      :value="v.id"
-                    >
-                      {{ v.name }} ({{ v.gender === "male" ? "♂" : "♀" }})
-                    </option>
-                  </optgroup>
-                  <optgroup label="🇬🇧 Английские (UK)">
-                    <option
-                      v-for="v in availableVoices.filter(
-                        (v) => v.lang === 'en-GB',
-                      )"
-                      :key="v.id"
-                      :value="v.id"
-                    >
-                      {{ v.name }} ({{ v.gender === "male" ? "♂" : "♀" }})
-                    </option>
-                  </optgroup>
-                  <optgroup label="🇺🇦 Украинские">
-                    <option
-                      v-for="v in availableVoices.filter(
-                        (v) => v.lang === 'uk-UA',
-                      )"
-                      :key="v.id"
-                      :value="v.id"
-                    >
-                      {{ v.name }} ({{ v.gender === "male" ? "♂" : "♀" }})
-                    </option>
-                  </optgroup>
+                  </template>
                 </select>
               </div>
 
-              <!-- Rate Slider -->
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <label class="text-sm font-medium text-gray-300">
-                    Скорость речи
-                  </label>
-                  <span class="text-sm text-purple-400 font-mono">
-                    {{ editingVoice.rate }}
-                  </span>
+              <!-- Rate/Pitch/Volume Sliders - only for Edge TTS -->
+              <template v-if="editingVoice.ttsProvider === 'edge'">
+                <!-- Rate Slider -->
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <label class="text-sm font-medium text-gray-300">
+                      Скорость речи
+                    </label>
+                    <span class="text-sm text-purple-400 font-mono">
+                      {{ editingVoice.rate }}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    :value="parseRate(editingVoice.rate)"
+                    @input="editingVoice.rate = formatRate($event.target.value)"
+                    min="-50"
+                    max="100"
+                    step="5"
+                    class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  />
+                  <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>Медленно</span>
+                    <span>Нормально</span>
+                    <span>Быстро</span>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  :value="parseRate(editingVoice.rate)"
-                  @input="editingVoice.rate = formatRate($event.target.value)"
-                  min="-50"
-                  max="100"
-                  step="5"
-                  class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                />
-                <div class="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Медленно</span>
-                  <span>Нормально</span>
-                  <span>Быстро</span>
-                </div>
-              </div>
 
-              <!-- Pitch Slider -->
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <label class="text-sm font-medium text-gray-300">
-                    Высота голоса
-                  </label>
-                  <span class="text-sm text-purple-400 font-mono">
-                    {{ editingVoice.pitch }}
-                  </span>
+                <!-- Pitch Slider -->
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <label class="text-sm font-medium text-gray-300">
+                      Высота голоса
+                    </label>
+                    <span class="text-sm text-purple-400 font-mono">
+                      {{ editingVoice.pitch }}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    :value="parsePitch(editingVoice.pitch)"
+                    @input="
+                      editingVoice.pitch = formatPitch($event.target.value)
+                    "
+                    min="-50"
+                    max="50"
+                    step="5"
+                    class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  />
+                  <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>Низкий</span>
+                    <span>Нормальный</span>
+                    <span>Высокий</span>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  :value="parsePitch(editingVoice.pitch)"
-                  @input="editingVoice.pitch = formatPitch($event.target.value)"
-                  min="-50"
-                  max="50"
-                  step="5"
-                  class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                />
-                <div class="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Низкий</span>
-                  <span>Нормальный</span>
-                  <span>Высокий</span>
-                </div>
-              </div>
 
-              <!-- Volume Slider -->
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <label class="text-sm font-medium text-gray-300">
-                    Громкость
-                  </label>
-                  <span class="text-sm text-purple-400 font-mono">
-                    {{ editingVoice.volume }}
-                  </span>
+                <!-- Volume Slider -->
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <label class="text-sm font-medium text-gray-300">
+                      Громкость
+                    </label>
+                    <span class="text-sm text-purple-400 font-mono">
+                      {{ editingVoice.volume }}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    :value="parseVolume(editingVoice.volume)"
+                    @input="
+                      editingVoice.volume = formatVolume($event.target.value)
+                    "
+                    min="-50"
+                    max="50"
+                    step="5"
+                    class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  />
+                  <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>Тихо</span>
+                    <span>Нормально</span>
+                    <span>Громко</span>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  :value="parseVolume(editingVoice.volume)"
-                  @input="
-                    editingVoice.volume = formatVolume($event.target.value)
-                  "
-                  min="-50"
-                  max="50"
-                  step="5"
-                  class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                />
-                <div class="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Тихо</span>
-                  <span>Нормально</span>
-                  <span>Громко</span>
-                </div>
+              </template>
+
+              <!-- Info for OpenAI/Gemini -->
+              <div
+                v-if="editingVoice.ttsProvider !== 'edge'"
+                class="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-300 text-sm"
+              >
+                💡
+                {{
+                  editingVoice.ttsProvider === "openai"
+                    ? "OpenAI TTS"
+                    : "Gemini TTS"
+                }}
+                не поддерживает настройку скорости, высоты и громкости.
               </div>
 
               <!-- Preview Section -->
@@ -351,6 +412,7 @@ import {
 interface VoiceConfig {
   id?: string;
   name: string;
+  ttsProvider: string;
   voice: string;
   rate: string;
   pitch: string;
@@ -364,6 +426,13 @@ interface AvailableVoice {
   name: string;
   lang: string;
   gender: string;
+  desc?: string;
+}
+
+interface TtsProvider {
+  id: string;
+  name: string;
+  desc: string;
 }
 
 const props = defineProps<{
@@ -377,7 +446,12 @@ initModalEscapeHandler();
 const { register, unregister } = useModalStack(() => emit("close"));
 
 const voices = ref<VoiceConfig[]>([]);
-const availableVoices = ref<AvailableVoice[]>([]);
+const availableVoices = ref<Record<string, AvailableVoice[]>>({
+  edge: [],
+  openai: [],
+  gemini: [],
+});
+const ttsProviders = ref<TtsProvider[]>([]);
 const selectedVoice = ref<VoiceConfig | null>(null);
 const editingVoice = ref<VoiceConfig | null>(null);
 const isLoading = ref(false);
@@ -410,7 +484,19 @@ async function loadVoices() {
   try {
     const response = await api.get("/voices");
     voices.value = response.data.voices || [];
-    availableVoices.value = response.data.availableVoices || [];
+    ttsProviders.value = response.data.ttsProviders || [
+      { id: "edge", name: "Edge TTS", desc: "Бесплатный" },
+    ];
+    // Новый формат: объект с провайдерами
+    if (
+      response.data.availableVoices &&
+      typeof response.data.availableVoices === "object"
+    ) {
+      availableVoices.value = response.data.availableVoices;
+    } else {
+      // Обратная совместимость
+      availableVoices.value = { edge: response.data.availableVoices || [] };
+    }
   } catch (error) {
     console.error("Failed to load voices:", error);
   } finally {
@@ -421,6 +507,7 @@ async function loadVoices() {
 function createNewVoice() {
   editingVoice.value = {
     name: "",
+    ttsProvider: "edge",
     voice: "ru-RU-DmitryNeural",
     rate: "+0%",
     pitch: "+0Hz",
@@ -430,6 +517,34 @@ function createNewVoice() {
   };
   selectedVoice.value = null;
 }
+
+// Computed: голоса для текущего провайдера
+function getCurrentProviderVoices(): AvailableVoice[] {
+  if (!editingVoice.value) return [];
+  const provider = editingVoice.value.ttsProvider || "edge";
+  return availableVoices.value[provider] || [];
+}
+
+// При смене провайдера - выбираем первый голос
+function selectTtsProvider(providerId: string) {
+  if (!editingVoice.value) return;
+  editingVoice.value.ttsProvider = providerId;
+  // Выбираем первый голос для нового провайдера
+  const voices = availableVoices.value[providerId] || [];
+  if (voices.length > 0) {
+    editingVoice.value.voice = voices[0].id;
+  }
+}
+
+// Getter для использования в шаблоне
+const currentProviderVoices = ref<AvailableVoice[]>([]);
+watch(
+  [() => editingVoice.value?.ttsProvider, availableVoices],
+  () => {
+    currentProviderVoices.value = getCurrentProviderVoices();
+  },
+  { immediate: true, deep: true },
+);
 
 function selectVoice(voice: VoiceConfig) {
   selectedVoice.value = voice;
@@ -445,6 +560,7 @@ async function saveVoice() {
       // Create new voice
       await api.post("/voices", {
         name: editingVoice.value.name,
+        ttsProvider: editingVoice.value.ttsProvider || "edge",
         voice: editingVoice.value.voice,
         rate: editingVoice.value.rate,
         pitch: editingVoice.value.pitch,
@@ -455,6 +571,7 @@ async function saveVoice() {
       // Update existing voice
       await api.put(`/voices/${editingVoice.value.id}`, {
         name: editingVoice.value.name,
+        ttsProvider: editingVoice.value.ttsProvider || "edge",
         voice: editingVoice.value.voice,
         rate: editingVoice.value.rate,
         pitch: editingVoice.value.pitch,
@@ -510,6 +627,7 @@ async function playPreview() {
   try {
     const response = await api.post("/voices/preview", {
       text: previewText.value,
+      ttsProvider: editingVoice.value.ttsProvider || "edge",
       voice: editingVoice.value.voice,
       rate: editingVoice.value.rate,
       pitch: editingVoice.value.pitch,
@@ -539,8 +657,41 @@ function stopPreview() {
 }
 
 function getVoiceDisplayName(voiceId: string): string {
-  const voice = availableVoices.value.find((v) => v.id === voiceId);
-  return voice ? `${voice.name} (${voice.lang})` : voiceId;
+  // Search across all providers
+  for (const provider of Object.keys(availableVoices.value)) {
+    const voices = availableVoices.value[provider] || [];
+    const voice = voices.find((v) => v.id === voiceId);
+    if (voice) {
+      return `${voice.name}${voice.lang ? ` (${voice.lang})` : ""}`;
+    }
+  }
+  return voiceId;
+}
+
+// Helper для отображения лейбла провайдера
+function getTtsProviderLabel(provider: string): string {
+  switch (provider) {
+    case "openai":
+      return "OpenAI";
+    case "gemini":
+      return "Gemini";
+    case "edge":
+    default:
+      return "Edge";
+  }
+}
+
+// Helper для стилей бейджа провайдера
+function getTtsProviderBadgeClass(provider: string): string {
+  switch (provider) {
+    case "openai":
+      return "bg-green-500/20 text-green-400";
+    case "gemini":
+      return "bg-blue-500/20 text-blue-400";
+    case "edge":
+    default:
+      return "bg-gray-600/20 text-gray-400";
+  }
 }
 
 // Helpers for sliders

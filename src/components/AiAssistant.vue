@@ -49,6 +49,31 @@
             </span>
           </div>
           <div class="flex items-center gap-1">
+            <!-- AI Provider selector -->
+            <div
+              class="flex items-center gap-1 mr-2"
+              v-if="aiProviders.length > 1"
+            >
+              <button
+                v-for="provider in aiProviders"
+                :key="provider.id"
+                @click="
+                  selectedAiProvider = provider.id;
+                  selectedAiModel = null;
+                "
+                :class="[
+                  'px-2 py-1 text-xs rounded transition-colors',
+                  selectedAiProvider === provider.id
+                    ? provider.id === 'openai'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600',
+                ]"
+                :title="provider.name"
+              >
+                {{ provider.id === "openai" ? "GPT" : "Gem" }}
+              </button>
+            </div>
             <button
               v-if="messages.length > 0"
               @click="clearChat"
@@ -183,7 +208,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from "vue";
+import { ref, computed, watch, nextTick, onMounted } from "vue";
 import {
   Sparkles,
   X,
@@ -192,7 +217,7 @@ import {
   Loader2,
   ChevronDown,
 } from "lucide-vue-next";
-import { aiAssistantApi } from "../api";
+import { aiAssistantApi, aiProvidersApi } from "../api";
 
 const props = defineProps({
   // 'segment' or 'video'
@@ -254,6 +279,30 @@ const inputMessage = ref("");
 const messages = ref([]);
 const isLoading = ref(false);
 const messagesContainer = ref(null);
+
+// AI Provider selection
+const aiProviders = ref([]);
+const selectedAiProvider = ref(null);
+const selectedAiModel = ref(null);
+
+// Load AI providers
+async function loadAiProviders() {
+  try {
+    const response = await aiProvidersApi.getProviders();
+    aiProviders.value = response.data.providers || [];
+    if (response.data.defaultProvider) {
+      selectedAiProvider.value = response.data.defaultProvider;
+    } else if (aiProviders.value.length > 0) {
+      selectedAiProvider.value = aiProviders.value[0].id;
+    }
+  } catch (error) {
+    console.error("Failed to load AI providers:", error);
+  }
+}
+
+onMounted(() => {
+  loadAiProviders();
+});
 
 // Computed: классы позиционирования дропдауна
 const dropdownPositionClasses = computed(() => {
@@ -334,6 +383,8 @@ async function sendMessage(text) {
         useLoopScript: props.useLoopScript,
         introText: props.introText,
         outroText: props.outroText,
+        aiProvider: selectedAiProvider.value,
+        aiModel: selectedAiModel.value,
       };
 
       // Build chat history (last 10 messages)
@@ -355,6 +406,8 @@ async function sendMessage(text) {
         music: props.music,
         template: props.template,
         useLoopScript: props.useLoopScript,
+        aiProvider: selectedAiProvider.value,
+        aiModel: selectedAiModel.value,
       };
 
       // Build chat history

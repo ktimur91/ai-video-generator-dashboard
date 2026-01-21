@@ -155,6 +155,55 @@
         </select>
       </div>
 
+      <!-- Выбор AI провайдера -->
+      <div class="flex items-center gap-4" v-if="aiProviders.length > 0">
+        <label class="text-sm text-gray-400 flex items-center gap-2">
+          <Bot class="w-4 h-4" />
+          AI:
+        </label>
+        <div class="flex gap-2">
+          <button
+            v-for="provider in aiProviders"
+            :key="provider.id"
+            type="button"
+            @click="
+              selectedAiProvider = provider.id;
+              selectedAiModel = null;
+            "
+            :class="[
+              'px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
+              selectedAiProvider === provider.id
+                ? provider.id === 'openai'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-blue-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700',
+            ]"
+          >
+            <span>{{ provider.name }}</span>
+          </button>
+        </div>
+        <!-- Выбор модели -->
+        <select
+          v-if="
+            selectedAiProvider &&
+            aiProviders.find((p) => p.id === selectedAiProvider)?.models
+              ?.length > 1
+          "
+          v-model="selectedAiModel"
+          class="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+        >
+          <option :value="null">Модель по умолчанию</option>
+          <option
+            v-for="model in aiProviders.find((p) => p.id === selectedAiProvider)
+              ?.models || []"
+            :key="model"
+            :value="model"
+          >
+            {{ model }}
+          </option>
+        </select>
+      </div>
+
       <div class="flex items-center gap-3">
         <button
           type="submit"
@@ -245,8 +294,9 @@ import {
   Lightbulb,
   RefreshCw,
   Search,
+  Bot,
 } from "lucide-vue-next";
-import { topicsApi, templatesApi } from "../api";
+import { topicsApi, templatesApi, aiProvidersApi } from "../api";
 
 const props = defineProps({
   isLoading: Boolean,
@@ -261,6 +311,27 @@ const useAIMusicSelection = ref(false);
 const useLoopScript = ref(false);
 const selectedTemplateId = ref(null);
 const templates = ref([]);
+
+// AI Provider selection
+const aiProviders = ref([]);
+const selectedAiProvider = ref(null);
+const selectedAiModel = ref(null);
+
+// Загружаем AI провайдеров
+async function loadAiProviders() {
+  try {
+    const response = await aiProvidersApi.getProviders();
+    aiProviders.value = response.data.providers || [];
+    // Выбираем дефолтный провайдер
+    if (response.data.defaultProvider) {
+      selectedAiProvider.value = response.data.defaultProvider;
+    } else if (aiProviders.value.length > 0) {
+      selectedAiProvider.value = aiProviders.value[0].id;
+    }
+  } catch (error) {
+    console.error("Failed to load AI providers:", error);
+  }
+}
 
 // Загружаем шаблоны
 async function loadTemplates() {
@@ -309,13 +380,16 @@ function handleSubmit() {
       useAIMusicSelection: useAIMusicSelection.value,
       useLoopScript: useLoopScript.value,
       templateId: selectedTemplateId.value,
+      aiProvider: selectedAiProvider.value,
+      aiModel: selectedAiModel.value,
     });
     topic.value = "";
   }
 }
 
-// Загружаем шаблоны при первой загрузке
+// Загружаем шаблоны и провайдеров при первой загрузке
 onMounted(() => {
   loadTemplates();
+  loadAiProviders();
 });
 </script>

@@ -159,4 +159,17 @@ export const aiAssistantApi = {
     api.post("/ai-assistant/video", { message, chatHistory, context }),
 };
 
+// AI Providers API
+export const aiProvidersApi = {
+  // Получить список доступных провайдеров
+  getProviders: () => api.get("/ai-providers"),
+
+  // Проверить доступность провайдера
+  checkProvider: (provider) => api.post("/ai-providers/check", { provider }),
+
+  // Тестировать провайдер
+  testProvider: (provider, model = null) =>
+    api.post("/ai-providers/test", { provider, model }),
+};
+
 export default api;

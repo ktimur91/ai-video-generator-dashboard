@@ -1742,6 +1742,7 @@ async function toggleVoicePreview() {
     try {
       const response = await api.post("/voices/preview", {
         text: voicePreviewText,
+        ttsProvider: voice.ttsProvider || "edge",
         voice: voice.voice,
         rate: voice.rate,
         pitch: voice.pitch,
