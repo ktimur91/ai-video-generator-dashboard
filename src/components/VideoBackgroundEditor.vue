@@ -394,7 +394,7 @@
                     v-model="searchQuery"
                     type="text"
                     placeholder="Поиск видео..."
-                    class="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 w-[350px]"
+                    class="flex-1 px-4 py-2 pr-12 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 w-[350px]"
                     @keyup.enter="searchVideos(true)"
                   />
                   <button
