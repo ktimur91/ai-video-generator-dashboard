@@ -8,7 +8,7 @@
 
     <!-- Modal -->
     <div
-      class="relative bg-gray-900 rounded-2xl w-[95vw] h-[90vh] overflow-hidden flex flex-col"
+      class="relative bg-gray-900 rounded-2xl w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] overflow-hidden flex flex-col"
     >
       <!-- Header -->
       <div
@@ -22,9 +22,19 @@
                 : "Редактирование видео-фонов"
             }}
           </h2>
+
+          <!-- Total Duration -->
+          <div class="flex items-center gap-2 px-2 h-7 bg-gray-800 rounded-lg">
+            <span class="text-gray-400">⏱</span>
+            <span class="text-xs text-white font-medium"
+              >~{{ formatDuration(totalEstimatedDuration) }}</span
+            >
+          </div>
+
+          <!-- Draft Indicator -->
           <span
             v-if="hasDraft"
-            class="flex items-center gap-2 px-2 py-0.5 bg-yellow-600/20 border border-yellow-600/50 rounded-lg text-xs text-yellow-400"
+            class="flex items-center gap-2 px-2 h-7 bg-yellow-600/20 border border-yellow-600/50 rounded-lg text-xs text-yellow-400"
             title="Есть несохранённые изменения из предыдущей сессии"
           >
             📝 Восстановлено
@@ -37,12 +47,26 @@
             </button>
           </span>
         </div>
-        <button
-          @click="close"
-          class="p-2 hover:bg-gray-800 rounded-xl transition-colors"
-        >
-          <X class="w-5 h-5 text-gray-400" />
-        </button>
+        <div class="flex items-center gap-3">
+          <!-- Global AI Assistant -->
+          <AiAssistant
+            mode="video"
+            :video-title="video?.title"
+            :segments="localSegments"
+            :music="selectedMusicTrack"
+            :template="currentTemplate"
+            :use-loop-script="isLoopEnabled"
+            @update-all-texts="handleAiUpdateAllTexts"
+            @search-all-videos="handleAiSearchAllVideos"
+            @search-music="handleAiSearchMusic"
+          />
+          <button
+            @click="close"
+            class="p-2 hover:bg-gray-800 rounded-xl transition-colors"
+          >
+            <X class="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
       </div>
 
       <!-- Content -->
@@ -58,7 +82,7 @@
               selectedSegmentIndex === index
                 ? 'bg-primary-600 text-white'
                 : !segmentVideoRequirements[index]?.isEnough
-                  ? 'bg-red-900/30 border border-red-500/50 text-gray-300 hover:bg-red-900/50'
+                  ? 'bg-red-900/30 ring-red-500 ring-1 text-gray-300 hover:bg-red-900/50'
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700',
             ]"
           >
@@ -142,10 +166,29 @@
               <!-- Estimated Duration -->
               <p class="text-xs text-gray-500 mt-2">
                 ⏱ ~{{
-                  localSegments[selectedSegmentIndex]?.estimatedDuration || "?"
+                  dynamicSegmentDurations[selectedSegmentIndex]?.toFixed(1) ||
+                  "?"
                 }}
                 сек
               </p>
+
+              <!-- AI Assistant for Segment -->
+              <div class="mt-3">
+                <AiAssistant
+                  mode="segment"
+                  size="small"
+                  :segment-text="localSegments[selectedSegmentIndex]?.text"
+                  :segment-type="localSegments[selectedSegmentIndex]?.type"
+                  :segment-index="selectedSegmentIndex"
+                  :current-videos="currentSegmentVideos"
+                  :use-loop-script="isLoopEnabled"
+                  :intro-text="introText"
+                  :outro-text="outroText"
+                  dropdown-position="left-down"
+                  @update-text="handleAiUpdateText"
+                  @search-videos="handleAiSearchVideos"
+                />
+              </div>
             </div>
 
             <!-- Multiple Videos Preview -->
@@ -222,7 +265,9 @@
                       >
                         <div class="flex items-center justify-between">
                           <span class="text-xs text-gray-400">
-                            Видео: {{ video.duration }} сек.
+                            Видео:
+                            {{ video.duration?.toFixed(1) || video.duration }}
+                            сек.
                           </span>
 
                           <div class="flex items-center gap-2">
@@ -302,50 +347,9 @@
           </div>
 
           <!-- Search -->
-          <div class="space-y-3 p-4 overflow-y-auto">
-            <!-- Search Input -->
-            <div class="flex gap-2">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Поиск видео..."
-                class="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                @keyup.enter="searchVideos(true)"
-              />
-              <button
-                @click="searchVideos(true)"
-                :disabled="isSearching || !searchQuery"
-                class="px-4 py-2 bg-primary-600 hover:bg-primary-500 disabled:bg-gray-700 rounded-xl text-white font-medium transition-colors"
-              >
-                <Search v-if="!isSearching" class="w-5 h-5" />
-                <Loader2 v-else class="w-5 h-5 animate-spin" />
-              </button>
-            </div>
-
-            <!-- Vertical Only Toggle (not for Klipy) -->
-            <div
-              v-if="activeSource !== 'klipy'"
-              class="flex items-center gap-4"
-            >
-              <label
-                class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  v-model="verticalOnly"
-                  class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-primary-600 focus:ring-primary-500"
-                />
-                Только вертикальные видео
-              </label>
-            </div>
-
-            <!-- Klipy notice -->
-            <div v-else class="text-xs text-gray-500">
-              💡 Klipy — клипы из фильмов и мемы. Фильтр ориентации недоступен.
-            </div>
-
+          <div class="grid grid-rows-[auto_auto_1fr] overflow-y-auto">
             <!-- Source Tabs -->
-            <div class="flex gap-2 border-b border-gray-700">
+            <div class="flex gap-2 border-b border-gray-700 px-4">
               <button
                 v-for="source in sources"
                 :key="source.id"
@@ -365,65 +369,151 @@
                   ({{ sourceResults[source.id].videos.length }})
                 </span>
               </button>
+
+              <div class="toolbar py-2 flex items-center gap-5 ml-auto">
+                <!-- Vertical Only Toggle (not for Klipy) -->
+                <div
+                  v-if="activeSource !== 'klipy'"
+                  class="flex items-center gap-4"
+                >
+                  <label
+                    class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      v-model="verticalOnly"
+                      class="w-4 h-4 rounded bg-gray-700 border-gray-600 text-primary-600 focus:ring-primary-500"
+                    />
+                    Только вертикальные
+                  </label>
+                </div>
+
+                <!-- Search Input -->
+                <div class="flex gap-2 relative">
+                  <input
+                    v-model="searchQuery"
+                    type="text"
+                    placeholder="Поиск видео..."
+                    class="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 w-[350px]"
+                    @keyup.enter="searchVideos(true)"
+                  />
+                  <button
+                    @click="searchVideos(true)"
+                    :disabled="isSearching || !searchQuery"
+                    class="absolute right-[4px] top-[4px] bottom-[4px] w-[34px] flex items-center justify-center bg-gray-800 hover:bg-primary-500 disabled:bg-gray-700 rounded-xl text-gray-400 hover:text-white font-medium transition-colors"
+                  >
+                    <Search v-if="!isSearching" class="w-4 h-4" />
+                    <Loader2 v-else class="w-4 h-4 animate-spin" />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <!-- Search Results for Active Source -->
+            <!-- Search Results for Active Source with Virtual Scroll -->
             <div
               v-if="currentSourceResults.videos.length > 0"
-              class="space-y-3"
+              class="grid grid-rows-[1fr_auto] overflow-y-auto"
             >
-              <div class="grid grid-cols-4 gap-3">
-                <button
-                  v-for="video in currentSourceResults.videos"
-                  :key="video.id"
-                  @click="selectVideo(video)"
-                  :class="[
-                    'relative rounded-xl overflow-hidden bg-gray-800 aspect-[9/16] transition-all group',
-                    !video.isVertical
-                      ? 'ring-2 ring-yellow-500/50'
-                      : 'hover:ring-2 hover:ring-primary-500',
-                  ]"
+              <!-- Virtual Scroll Container -->
+              <div
+                ref="videoGridRef"
+                class="overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
+                @scroll="handleVideoGridScroll"
+              >
+                <div
+                  :style="{
+                    height: virtualScrollData.totalHeight + 'px',
+                    position: 'relative',
+                  }"
                 >
-                  <video
-                    :src="video.url"
-                    class="w-full h-full object-cover"
-                    muted
-                    loop
-                    playsinline
-                    @mouseenter="
-                      ($event.target as HTMLVideoElement).play().catch(() => {})
-                    "
-                    @mouseleave="($event.target as HTMLVideoElement).pause()"
-                  />
-                  <div
-                    class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  <!-- Каждый элемент позиционируется абсолютно -->
+                  <button
+                    v-for="video in virtualScrollData.visibleVideos"
+                    :key="video.id"
+                    @click="selectVideo(video)"
+                    :style="{
+                      position: 'absolute',
+                      top: video.top + 'px',
+                      left: `calc(${video.col} * (100% - 48px) / 5 + ${video.col} * 12px)`,
+                      width: 'calc((100% - 48px) / 5)',
+                    }"
+                    :class="[
+                      'rounded-xl overflow-hidden bg-gray-800 transition-all group aspect-[9/16]',
+                      isVideoSelected(video.id)
+                        ? 'ring-2 ring-green-500 ring-offset-2 ring-offset-gray-900'
+                        : !video.isVertical
+                          ? 'ring-2 ring-yellow-500/50'
+                          : 'hover:ring-2 hover:ring-primary-500',
+                    ]"
                   >
-                    <Check class="w-8 h-8 text-white" />
-                  </div>
-                  <div
-                    class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/70 rounded text-xs text-white"
-                  >
-                    {{ video.duration }}s
-                  </div>
-                  <div
-                    v-if="!video.isVertical"
-                    class="absolute top-1 left-1 px-1.5 py-0.5 bg-yellow-600/90 rounded text-xs text-white"
-                  >
-                    ⬌
-                  </div>
-                </button>
+                    <!-- Thumbnail / Poster -->
+                    <img
+                      v-if="hoveredVideoId !== video.id"
+                      :src="video.thumbnail || video.url"
+                      class="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <!-- Video (только при hover) -->
+                    <video
+                      v-else
+                      :src="video.url"
+                      class="w-full h-full object-cover"
+                      muted
+                      loop
+                      playsinline
+                      autoplay
+                      @mouseleave="
+                        handleVideoLeave($event.target as HTMLVideoElement)
+                      "
+                    />
+                    <!-- Hover overlay для запуска видео -->
+                    <div
+                      v-if="hoveredVideoId !== video.id"
+                      class="absolute inset-0"
+                      @mouseenter="handleVideoHover(video.id)"
+                    />
+                    <!-- Selected indicator -->
+                    <div
+                      v-if="isVideoSelected(video.id)"
+                      class="absolute top-1 right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
+                    >
+                      <Check class="w-4 h-4 text-white" />
+                    </div>
+                    <!-- Hover overlay with add icon -->
+                    <div
+                      v-if="!isVideoSelected(video.id)"
+                      class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none"
+                    >
+                      <!-- <Check class="w-8 h-8 text-white" /> -->
+                    </div>
+                    <!-- Duration badge -->
+                    <div
+                      class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/70 rounded text-xs text-white"
+                    >
+                      {{ video.duration?.toFixed(1) || video.duration }}s
+                    </div>
+                    <!-- Horizontal video indicator -->
+                    <div
+                      v-if="!video.isVertical"
+                      class="absolute top-1 left-1 px-1.5 py-0.5 bg-yellow-600/90 rounded text-xs text-white"
+                    >
+                      ⬌
+                    </div>
+                  </button>
+                </div>
               </div>
 
               <!-- Load More Button -->
-              <button
-                v-if="currentSourceResults.hasMore"
-                @click="loadMore"
-                :disabled="isSearching"
-                class="w-full py-3 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-800 rounded-xl text-gray-300 font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <Loader2 v-if="isSearching" class="w-4 h-4 animate-spin" />
-                <span v-else>Загрузить ещё</span>
-              </button>
+              <div v-if="currentSourceResults.hasMore" class="px-4 py-1">
+                <button
+                  class="w-full py-1 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-800 rounded-xl text-gray-300 font-medium transition-colors flex items-center justify-center gap-2"
+                  :disabled="isSearching"
+                  @click="loadMore"
+                >
+                  <Loader2 v-if="isSearching" class="w-4 h-4 animate-spin" />
+                  <span v-else>Загрузить ещё</span>
+                </button>
+              </div>
             </div>
 
             <p
@@ -447,16 +537,15 @@
       <div
         class="flex items-center justify-between p-4 border-t border-gray-800"
       >
-        <div class="flex items-center gap-4">
-          <!-- <p class="text-sm text-gray-400">Изменено: {{ changedCount }}</p> -->
-
-          <!-- Background music selector (only in review mode) -->
-          <div v-if="isReviewMode" class="flex items-center gap-2">
+        <!-- Background music selector (only in review mode) -->
+        <div v-if="isReviewMode" class="flex items-center gap-2">
+          <!-- Music -->
+          <div class="flex items-center gap-1">
             <Music class="w-4 h-4 text-gray-400" />
 
             <!-- Current selected music display -->
             <div
-              class="flex items-center gap-2 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg min-w-[200px] cursor-pointer"
+              class="flex items-center gap-2 w-[200px] px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg cursor-pointer"
               @click="isMusicModalOpen = true"
             >
               <span
@@ -467,15 +556,6 @@
               </span>
               <span v-else class="text-sm text-gray-500">Без музыки</span>
             </div>
-
-            <!-- Open music library button -->
-            <!-- <button
-              @click="isMusicModalOpen = true"
-              class="p-1.5 bg-primary-600 hover:bg-primary-500 rounded-lg transition-colors"
-              title="Открыть библиотеку музыки"
-            >
-              <Library class="w-4 h-4 text-white" />
-            </button> -->
 
             <!-- Play/Stop button -->
             <button
@@ -504,16 +584,18 @@
             >
               <X class="w-4 h-4 text-gray-300" />
             </button>
+          </div>
 
-            <!-- Divider -->
-            <div class="w-px h-6 bg-gray-700 mx-2"></div>
+          <!-- Divider -->
+          <div class="w-px h-6 bg-gray-700 mx-2"></div>
 
-            <!-- Voice selector -->
+          <!-- Voice selector -->
+          <div class="flex items-center gap-1">
             <Mic class="w-4 h-4 text-purple-400" />
             <select
               v-model="selectedVoiceConfigId"
               :disabled="isLoadingVoices"
-              class="px-3 py-1.5 bg-gray-800 border border-purple-700/50 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[180px]"
+              class="w-[200px] px-3 py-1.5 bg-gray-800 border border-purple-700/50 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[180px]"
             >
               <option value="">Голос по умолчанию</option>
               <option
@@ -557,15 +639,17 @@
                 class="w-4 h-4"
               />
             </button>
+          </div>
 
-            <!-- Divider -->
-            <div class="w-px h-6 bg-gray-700 mx-2"></div>
+          <!-- Divider -->
+          <div class="w-px h-6 bg-gray-700 mx-2"></div>
 
-            <!-- Template selector -->
+          <!-- Template selector -->
+          <div class="flex items-center gap-1">
             <Palette class="w-4 h-4 text-pink-400" />
             <select
               v-model="selectedTemplateId"
-              class="px-3 py-1.5 bg-gray-800 border border-pink-700/50 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-pink-500 min-w-[180px]"
+              class="w-[200px] px-3 py-1.5 bg-gray-800 border border-pink-700/50 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-pink-500 min-w-[180px]"
             >
               <option :value="null">Без шаблона</option>
               <option
@@ -579,36 +663,36 @@
             </select>
 
             <!-- Warning if segments missing videos -->
-            <span
-              v-if="segmentsWithMissingVideos.length > 0"
-              class="flex items-center gap-1 text-xs text-red-400 bg-red-500/20 px-2 py-1 rounded"
-              :title="`Сегменты с нехваткой видео: ${segmentsWithMissingVideos.map((s) => s.index + 1).join(', ')}`"
-            >
-              ⚠ {{ segmentsWithMissingVideos.length }} сегм. без видео
-            </span>
-
-            <!-- Divider -->
-            <div class="w-px h-6 bg-gray-700 mx-2"></div>
-
-            <!-- Loop toggle -->
-            <label
-              class="flex items-center gap-2 cursor-pointer select-none"
-              title="Бесшовный цикл видео без паузы между концом и началом"
-            >
-              <Repeat class="w-4 h-4 text-cyan-400" />
-              <span class="text-sm text-gray-300">Loop</span>
-              <div
-                class="relative w-10 h-5 rounded-full transition-colors"
-                :class="isLoopEnabled ? 'bg-cyan-600' : 'bg-gray-600'"
-                @click="isLoopEnabled = !isLoopEnabled"
+            <!-- <span
+                v-if="segmentsWithMissingVideos.length > 0"
+                class="flex items-center gap-1 text-xs text-red-400 bg-red-500/20 px-2 py-1 rounded"
+                :title="`Сегменты с нехваткой видео: ${segmentsWithMissingVideos.map((s) => s.index + 1).join(', ')}`"
               >
-                <div
-                  class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
-                  :class="{ 'translate-x-5': isLoopEnabled }"
-                ></div>
-              </div>
-            </label>
+                ⚠ {{ segmentsWithMissingVideos.length }} сегм.
+              </span> -->
           </div>
+
+          <!-- Divider -->
+          <div class="w-px h-6 bg-gray-700 mx-2"></div>
+
+          <!-- Loop toggle -->
+          <label
+            class="flex items-center gap-2 cursor-pointer select-none"
+            title="Бесшовный цикл видео без паузы между концом и началом"
+          >
+            <Repeat class="w-4 h-4 text-cyan-400" />
+            <span class="text-sm text-gray-300">Loop</span>
+            <div
+              class="relative w-10 h-5 rounded-full transition-colors"
+              :class="isLoopEnabled ? 'bg-cyan-600' : 'bg-gray-600'"
+              @click="isLoopEnabled = !isLoopEnabled"
+            >
+              <div
+                class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
+                :class="{ 'translate-x-5': isLoopEnabled }"
+              ></div>
+            </div>
+          </label>
         </div>
 
         <div class="flex gap-3">
@@ -653,7 +737,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, reactive, onMounted } from "vue";
+import { ref, computed, watch, reactive, onMounted, onUnmounted } from "vue";
 import {
   X,
   Search,
@@ -674,6 +758,11 @@ import {
 import draggable from "vuedraggable";
 import api, { templatesApi } from "../api";
 import MusicSelectorModal from "./MusicSelectorModal.vue";
+import AiAssistant from "./AiAssistant.vue";
+import {
+  useModalStack,
+  initModalEscapeHandler,
+} from "../composables/useModalStack";
 
 interface VideoResult {
   id: string | number;
@@ -730,6 +819,28 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(["close", "save", "approve"]);
+
+// Регистрация в стеке модалок для закрытия по Esc
+initModalEscapeHandler();
+const { register: registerModal, unregister: unregisterModal } = useModalStack(
+  () => close(),
+);
+
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen) {
+      registerModal();
+    } else {
+      unregisterModal();
+    }
+  },
+  { immediate: true },
+);
+
+onUnmounted(() => {
+  unregisterModal();
+});
 
 // LocalStorage key для автосохранения
 const getStorageKey = (videoId: string) => `video-editor-draft-${videoId}`;
@@ -858,6 +969,11 @@ const isEditingText = ref(false);
 const editingTextValue = ref("");
 const hasDraft = ref(false); // Индикатор восстановленного черновика
 
+// Виртуальный скролл
+const videoGridRef = ref<HTMLElement | null>(null);
+const scrollTop = ref(0);
+const hoveredVideoId = ref<string | number | null>(null);
+
 // Фоновая музыка
 const selectedMusicTrack = ref<MusicTrack | null>(null);
 const isMusicModalOpen = ref(false);
@@ -899,10 +1015,46 @@ const maxClipDuration = computed(
   () => currentTemplate.value?.maxClipDuration ?? 3,
 );
 
+// Утилита: расчёт примерной длительности на основе текста
+// Синхронизирована с backend/src/services/ai.service.js
+function estimateDurationFromText(text: string, charsPerSecond = 13): number {
+  if (!text) return 0;
+  const cleanText = text.trim().replace(/\s+/g, " ");
+  const sentences = cleanText.split(/[.!?]+/).filter((s) => s.trim()).length;
+  const pauseTime = sentences * 0.3; // 0.3 сек пауза между предложениями
+  return Math.ceil(cleanText.length / charsPerSecond + pauseTime);
+}
+
+// Computed: динамический расчёт длительности каждого сегмента
+const dynamicSegmentDurations = computed(() => {
+  return localSegments.value.map((segment) => {
+    // Приоритет: audioDuration (если есть) > estimatedDuration > расчёт по тексту
+    if (segment.audioDuration) return segment.audioDuration;
+    return estimateDurationFromText(segment.text);
+  });
+});
+
+// Computed: общая примерная длительность видео
+const totalEstimatedDuration = computed(() => {
+  return dynamicSegmentDurations.value.reduce((sum, dur) => sum + dur, 0);
+});
+
+// Форматирование длительности в мин:сек
+function formatDuration(seconds: number): string {
+  const rounded = Number(seconds.toFixed(1));
+  if (rounded < 60) return `${rounded} сек`;
+  const mins = Math.floor(rounded / 60);
+  const secs = Number((rounded % 60).toFixed(1));
+  return secs > 0
+    ? `${mins}:${secs.toFixed(1).padStart(4, "0")}`
+    : `${mins} мин`;
+}
+
 // Computed: требования по видео для каждого сегмента
 const segmentVideoRequirements = computed(() => {
   return localSegments.value.map((segment, index) => {
-    const duration = segment.estimatedDuration || segment.audioDuration || 5;
+    // Используем динамически рассчитанную длительность
+    const duration = dynamicSegmentDurations.value[index] || 5;
     const requiredVideos = Math.ceil(duration / maxClipDuration.value);
     const currentVideos =
       segment.stockVideos?.length || (segment.stockVideo?.url ? 1 : 0);
@@ -963,6 +1115,110 @@ const hasSearchedInSource = computed(
   () => currentSourceResults.value.hasSearched,
 );
 
+// Set выбранных видео для быстрой проверки
+const selectedVideoIds = computed(() => {
+  const ids = new Set<string | number>();
+  localSegments.value.forEach((segment) => {
+    if (segment.stockVideos) {
+      segment.stockVideos.forEach((v: any) => {
+        if (v.id) ids.add(v.id);
+      });
+    } else if (segment.stockVideo?.id) {
+      ids.add(segment.stockVideo.id);
+    }
+  });
+  return ids;
+});
+
+// Виртуальный скролл - настройки
+const ITEMS_PER_ROW = 5;
+const GAP = 12; // gap-3 = 0.75rem = 12px
+const BUFFER_ROWS = 3; // Дополнительные ряды сверху/снизу для плавности
+const containerWidth = ref(900); // Реальная ширина контейнера (обновляется через ResizeObserver)
+
+// Вычисляем размеры элемента динамически на основе реальной ширины контейнера
+const itemDimensions = computed(() => {
+  // При 5 колонках с gap-3: (containerWidth - 4*gap) / 5 = itemWidth
+  // aspect-ratio 9/16: itemHeight = itemWidth * 16/9
+  const totalGaps = (ITEMS_PER_ROW - 1) * GAP;
+  const width = (containerWidth.value - totalGaps) / ITEMS_PER_ROW;
+  const height = Math.round(width * (16 / 9));
+  return { width, height, rowHeight: height + GAP };
+});
+
+const itemHeight = computed(() => itemDimensions.value.rowHeight);
+
+// Обновляем ширину контейнера при изменении размера
+function updateContainerWidth() {
+  if (videoGridRef.value) {
+    containerWidth.value = videoGridRef.value.clientWidth;
+  }
+}
+
+const virtualScrollData = computed(() => {
+  const videos = currentSourceResults.value.videos;
+  const totalRows = Math.ceil(videos.length / ITEMS_PER_ROW);
+  const rowHeight = itemHeight.value;
+  const totalHeight = totalRows * rowHeight;
+
+  // Вычисляем видимый диапазон
+  const containerHeight = 400; // max-h-[400px]
+  const startRow = Math.max(
+    0,
+    Math.floor(scrollTop.value / rowHeight) - BUFFER_ROWS,
+  );
+  const visibleRows = Math.ceil(containerHeight / rowHeight) + BUFFER_ROWS * 2;
+  const endRow = Math.min(totalRows, startRow + visibleRows);
+
+  const startIndex = startRow * ITEMS_PER_ROW;
+  const endIndex = Math.min(videos.length, endRow * ITEMS_PER_ROW);
+
+  const visibleVideos = videos.slice(startIndex, endIndex).map((video, i) => {
+    const globalIndex = startIndex + i;
+    const row = Math.floor(globalIndex / ITEMS_PER_ROW);
+    const col = globalIndex % ITEMS_PER_ROW;
+    return {
+      ...video,
+      virtualIndex: globalIndex,
+      row,
+      col,
+      // Абсолютная позиция каждого элемента
+      top: row * rowHeight,
+    };
+  });
+
+  return {
+    totalHeight,
+    visibleVideos,
+    rowHeight,
+  };
+});
+
+function handleVideoGridScroll(event: Event) {
+  const target = event.target as HTMLElement;
+  scrollTop.value = target.scrollTop;
+}
+
+function isVideoSelected(videoId: string | number): boolean {
+  return selectedVideoIds.value.has(videoId);
+}
+
+function handleVideoHover(
+  videoId: string | number | null,
+  videoEl?: HTMLVideoElement,
+) {
+  hoveredVideoId.value = videoId;
+  if (videoEl && videoId !== null) {
+    videoEl.play().catch(() => {});
+  }
+}
+
+function handleVideoLeave(videoEl: HTMLVideoElement) {
+  hoveredVideoId.value = null;
+  videoEl.pause();
+  videoEl.currentTime = 0;
+}
+
 // Computed для работы с несколькими видео
 const currentSegmentVideos = computed(() => {
   if (selectedSegmentIndex.value === null) return [];
@@ -976,6 +1232,17 @@ const currentSegmentVideos = computed(() => {
     return [{ ...segment.stockVideo, percent: 100 }];
   }
   return [];
+});
+
+// Computed для текстов intro/outro (для AI Assistant в loop-режиме)
+const introText = computed(() => {
+  const intro = localSegments.value.find((s) => s.type === "intro");
+  return intro?.text || "";
+});
+
+const outroText = computed(() => {
+  const outro = localSegments.value.find((s) => s.type === "outro");
+  return outro?.text || "";
 });
 
 // Writable computed для vuedraggable v-model
@@ -1002,8 +1269,8 @@ const totalPercent = computed(() => {
 // Функция для получения примерных секунд по проценту
 function getVideoSeconds(percent: number): string {
   if (selectedSegmentIndex.value === null) return "?";
-  const segment = localSegments.value[selectedSegmentIndex.value];
-  const duration = segment?.estimatedDuration || segment?.audioDuration || 5;
+  const duration =
+    dynamicSegmentDurations.value[selectedSegmentIndex.value] || 5;
   return ((duration * percent) / 100).toFixed(1);
 }
 
@@ -1065,6 +1332,8 @@ watch(
   () => props.isOpen,
   async (isOpen) => {
     if (isOpen && props.video?.segments) {
+      document.body.style.overflow = "hidden";
+
       const segments =
         typeof props.video.segments === "string"
           ? JSON.parse(props.video.segments)
@@ -1179,6 +1448,20 @@ watch(
         // Устанавливаем режим loop из видео
         isLoopEnabled.value = props.video?.useLoopScript || false;
       }
+    } else {
+      document.body.style.overflow = "";
+
+      // Останавливаем музыку и голос при закрытии
+      if (audioPlayer.value) {
+        audioPlayer.value.pause();
+        audioPlayer.value.currentTime = 0;
+        isPlayingMusic.value = false;
+      }
+      if (voiceAudioPlayer.value) {
+        voiceAudioPlayer.value.pause();
+        voiceAudioPlayer.value.currentTime = 0;
+        isPlayingVoice.value = false;
+      }
     }
   },
 );
@@ -1273,6 +1556,12 @@ function selectSegment(index: number) {
 
 function switchSource(sourceId: string) {
   activeSource.value = sourceId;
+  // Сбрасываем виртуальный скролл
+  scrollTop.value = 0;
+  hoveredVideoId.value = null;
+  if (videoGridRef.value) {
+    videoGridRef.value.scrollTop = 0;
+  }
 }
 
 async function searchVideos(resetPage = true) {
@@ -1287,6 +1576,12 @@ async function searchVideos(resetPage = true) {
     // Сбрасываем cursor для Klipy при новом поиске
     if (source === "klipy") {
       sourceResults[source].nextPos = null;
+    }
+    // Сбрасываем виртуальный скролл
+    scrollTop.value = 0;
+    hoveredVideoId.value = null;
+    if (videoGridRef.value) {
+      videoGridRef.value.scrollTop = 0;
     }
   }
 
@@ -1505,6 +1800,73 @@ function cancelTextEdit() {
   editingTextValue.value = "";
 }
 
+// AI Assistant handlers
+function handleAiUpdateText(newText: string) {
+  if (selectedSegmentIndex.value === null) return;
+  localSegments.value[selectedSegmentIndex.value].text = newText;
+}
+
+async function handleAiSearchVideos(params: {
+  keywords: string[];
+  requirements?: string;
+}) {
+  // Используем keywords как поисковый запрос
+  const query = params.keywords.join(" ");
+  searchQuery.value = query;
+
+  // Запускаем поиск
+  await handleSearch();
+}
+
+// Global AI handlers
+function handleAiUpdateAllTexts(params: {
+  segments: Array<{ index: number; text: string }>;
+  style?: string;
+}) {
+  // Обновляем все тексты сегментов
+  for (const seg of params.segments) {
+    if (seg.index >= 0 && seg.index < localSegments.value.length) {
+      localSegments.value[seg.index].text = seg.text;
+    }
+  }
+}
+
+async function handleAiSearchAllVideos(params: {
+  segmentKeywords: Array<{ index: number; keywords: string[] }>;
+  globalRequirements?: string;
+}) {
+  // Поочерёдно ищем видео для каждого сегмента
+  for (const seg of params.segmentKeywords) {
+    if (seg.index >= 0 && seg.index < localSegments.value.length) {
+      // Переключаемся на сегмент
+      selectedSegmentIndex.value = seg.index;
+
+      // Устанавливаем поисковый запрос
+      const query = seg.keywords.join(" ");
+      searchQuery.value = query;
+
+      // Запускаем поиск
+      await handleSearch();
+
+      // Небольшая пауза между запросами
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+}
+
+function handleAiSearchMusic(params: {
+  mood?: string;
+  tempo?: string;
+  keywords?: string[];
+  description?: string;
+}) {
+  // Открываем модалку выбора музыки с предустановленными параметрами поиска
+  isMusicModalOpen.value = true;
+
+  // TODO: Можно добавить автоматический поиск музыки по параметрам
+  console.log("[AI] Search music with params:", params);
+}
+
 async function saveAndRender() {
   // Проверяем, изменился ли голос (нужна перегенерация аудио)
   const voiceChanged =
@@ -1553,7 +1915,27 @@ onMounted(() => {
       if (isOpen && localSegments.value.length > 0) {
         selectedSegmentIndex.value = 0;
       }
+      // Обновляем ширину контейнера при открытии
+      if (isOpen) {
+        setTimeout(updateContainerWidth, 100);
+      }
     },
+  );
+
+  // ResizeObserver для отслеживания изменения ширины контейнера
+  const resizeObserver = new ResizeObserver(() => {
+    updateContainerWidth();
+  });
+
+  watch(
+    () => videoGridRef.value,
+    (el) => {
+      if (el) {
+        resizeObserver.observe(el);
+        updateContainerWidth();
+      }
+    },
+    { immediate: true },
   );
 });
 </script>

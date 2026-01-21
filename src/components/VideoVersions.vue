@@ -1,6 +1,10 @@
 <script setup>
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import api from "../api";
+import {
+  useModalStack,
+  initModalEscapeHandler,
+} from "../composables/useModalStack";
 
 const props = defineProps({
   video: {
@@ -14,6 +18,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["close", "activated"]);
+
+// Регистрация в стеке модалок для закрытия по Esc
+initModalEscapeHandler();
+const { register, unregister } = useModalStack(() => close());
+const { register: registerPlayer, unregister: unregisterPlayer } =
+  useModalStack(() => closePlayer());
 
 const versions = ref([]);
 const loading = ref(false);
@@ -45,14 +55,15 @@ async function activateVersion(version) {
 
   try {
     await api.post(
-      `/videos/${props.video.id}/versions/${version.version}/activate`
+      `/videos/${props.video.id}/versions/${version.version}/activate`,
     );
     await loadVersions();
     emit("activated");
   } catch (err) {
     console.error("Failed to activate version:", err);
     alert(
-      "Ошибка активации версии: " + (err.response?.data?.message || err.message)
+      "Ошибка активации версии: " +
+        (err.response?.data?.message || err.message),
     );
   } finally {
     activating.value = null;
@@ -77,15 +88,20 @@ function getVideoUrl(path) {
 }
 
 function close() {
+  if (playingVersion.value) {
+    unregisterPlayer();
+  }
   playingVersion.value = null;
   emit("close");
 }
 
 function playVersion(version) {
   playingVersion.value = version;
+  registerPlayer();
 }
 
 function closePlayer() {
+  unregisterPlayer();
   playingVersion.value = null;
 }
 
@@ -93,15 +109,24 @@ watch(
   () => props.isOpen,
   (isOpen) => {
     if (isOpen) {
+      register();
       loadVersions();
+    } else {
+      unregister();
     }
-  }
+  },
+  { immediate: true },
 );
 
 onMounted(() => {
   if (props.isOpen) {
     loadVersions();
   }
+});
+
+onUnmounted(() => {
+  unregister();
+  unregisterPlayer();
 });
 </script>
 

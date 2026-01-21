@@ -263,7 +263,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, onUnmounted } from "vue";
 import {
   Youtube,
   X,
@@ -276,6 +276,10 @@ import {
   EyeOff,
 } from "lucide-vue-next";
 import { youtubeApi } from "../api";
+import {
+  useModalStack,
+  initModalEscapeHandler,
+} from "../composables/useModalStack";
 
 const props = defineProps({
   isOpen: {
@@ -289,6 +293,10 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["close", "published"]);
+
+// Регистрация в стеке модалок для закрытия по Esc
+initModalEscapeHandler();
+const { register, unregister } = useModalStack(() => emit("close"));
 
 const channels = ref([]);
 const selectedChannelId = ref(null);
@@ -455,10 +463,18 @@ watch(
   () => props.isOpen,
   (isOpen) => {
     if (isOpen) {
+      register();
       loadChannels();
+    } else {
+      unregister();
     }
   },
+  { immediate: true },
 );
+
+onUnmounted(() => {
+  unregister();
+});
 </script>
 
 <style scoped>

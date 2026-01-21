@@ -281,6 +281,10 @@
 import { ref, computed, watch, onUnmounted } from "vue";
 import { Music, X, Search, Loader2, Play, Pause, Check } from "lucide-vue-next";
 import { musicApi } from "../api";
+import {
+  useModalStack,
+  initModalEscapeHandler,
+} from "../composables/useModalStack";
 
 const props = defineProps({
   isOpen: Boolean,
@@ -288,6 +292,10 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["close", "select"]);
+
+// Modal Esc handler
+initModalEscapeHandler();
+const { register, unregister } = useModalStack(() => emit("close"));
 
 // State
 const searchQuery = ref("");
@@ -452,6 +460,7 @@ watch(
   () => props.isOpen,
   async (isOpen) => {
     if (isOpen) {
+      register();
       await loadFilters();
       await search();
 
@@ -461,13 +470,16 @@ watch(
           tracks.value.find((t) => t.id === props.currentMusic.id) || null;
       }
     } else {
+      unregister();
       stopPlaying();
     }
-  }
+  },
+  { immediate: true },
 );
 
 // Cleanup on unmount
 onUnmounted(() => {
+  unregister();
   stopPlaying();
 });
 </script>

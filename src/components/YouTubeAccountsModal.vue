@@ -204,7 +204,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, onUnmounted } from "vue";
 import {
   Youtube,
   X,
@@ -216,6 +216,10 @@ import {
   AlertCircle,
 } from "lucide-vue-next";
 import { youtubeApi } from "../api";
+import {
+  useModalStack,
+  initModalEscapeHandler,
+} from "../composables/useModalStack";
 
 const props = defineProps({
   isOpen: {
@@ -225,6 +229,26 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["close"]);
+
+// Регистрация в стеке модалок для закрытия по Esc
+initModalEscapeHandler();
+const { register, unregister } = useModalStack(() => emit("close"));
+
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen) {
+      register();
+    } else {
+      unregister();
+    }
+  },
+  { immediate: true },
+);
+
+onUnmounted(() => {
+  unregister();
+});
 
 const loading = ref(false);
 const saving = ref(false);

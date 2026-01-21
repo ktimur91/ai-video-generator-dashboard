@@ -316,7 +316,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch, onUnmounted } from "vue";
 import {
   Film,
   Play,
@@ -341,6 +341,10 @@ import {
   Layers,
   Repeat,
 } from "lucide-vue-next";
+import {
+  useModalStack,
+  initModalEscapeHandler,
+} from "../composables/useModalStack";
 
 const props = defineProps({
   video: {
@@ -368,6 +372,20 @@ const isEditing = ref(false);
 const editTitle = ref("");
 const editScript = ref("");
 const isPlayerOpen = ref(false);
+
+// Modal Esc handler for video player
+initModalEscapeHandler();
+const { register: registerPlayer, unregister: unregisterPlayer } =
+  useModalStack(() => closePlayer());
+
+watch(isPlayerOpen, (isOpen) => {
+  if (isOpen) registerPlayer();
+  else unregisterPlayer();
+});
+
+onUnmounted(() => {
+  unregisterPlayer();
+});
 
 const canEdit = computed(() => {
   return !["GENERATING_ASSETS", "RENDERING"].includes(props.video.status);

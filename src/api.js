@@ -148,4 +148,15 @@ export const templatesApi = {
     api.delete("/templates/cta-icon", { data: { imagePath } }),
 };
 
+// AI Assistant API
+export const aiAssistantApi = {
+  // AI помощник на уровне сегмента
+  segment: (message, chatHistory = [], context = {}) =>
+    api.post("/ai-assistant/segment", { message, chatHistory, context }),
+
+  // AI помощник на уровне всего видео
+  video: (message, chatHistory = [], context = {}) =>
+    api.post("/ai-assistant/video", { message, chatHistory, context }),
+};
+
 export default api;

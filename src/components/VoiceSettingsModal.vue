@@ -329,7 +329,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import {
   X,
   Mic,
@@ -343,6 +343,10 @@ import {
   Loader2,
 } from "lucide-vue-next";
 import api from "../api";
+import {
+  useModalStack,
+  initModalEscapeHandler,
+} from "../composables/useModalStack";
 
 interface VoiceConfig {
   id?: string;
@@ -368,6 +372,10 @@ const props = defineProps<{
 
 const emit = defineEmits(["close"]);
 
+// Регистрация в стеке модалок для закрытия по Esc
+initModalEscapeHandler();
+const { register, unregister } = useModalStack(() => emit("close"));
+
 const voices = ref<VoiceConfig[]>([]);
 const availableVoices = ref<AvailableVoice[]>([]);
 const selectedVoice = ref<VoiceConfig | null>(null);
@@ -379,15 +387,23 @@ const isPlayingPreview = ref(false);
 const previewText = ref("Привет! Это тестовое сообщение для проверки голоса.");
 const audioPlayer = ref<HTMLAudioElement | null>(null);
 
-// Load voices when modal opens
+// Load voices when modal opens + регистрация в стеке
 watch(
   () => props.isOpen,
   async (isOpen) => {
     if (isOpen) {
+      register();
       await loadVoices();
+    } else {
+      unregister();
     }
   },
+  { immediate: true },
 );
+
+onUnmounted(() => {
+  unregister();
+});
 
 async function loadVoices() {
   isLoading.value = true;

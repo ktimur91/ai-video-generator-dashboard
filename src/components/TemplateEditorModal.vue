@@ -1,4 +1,5 @@
 <template>
+  <!-- <BaseModal> -->
   <div
     v-if="isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -1475,6 +1476,7 @@
       </div>
     </div>
   </div>
+  <!-- </BaseModal> -->
 </template>
 
 <script setup>
@@ -1484,6 +1486,7 @@ import {
   computed,
   watch,
   onMounted,
+  onUnmounted,
   defineComponent,
   h,
 } from "vue";
@@ -1498,7 +1501,6 @@ import {
   Hash,
   BarChart3,
   MousePointerClick,
-  Image,
   Save,
   Trash2,
   Upload,
@@ -1509,12 +1511,20 @@ import {
 } from "lucide-vue-next";
 import draggable from "vuedraggable";
 import { templatesApi, youtubeApi } from "../api";
+import {
+  useModalStack,
+  initModalEscapeHandler,
+} from "../composables/useModalStack";
 
 const props = defineProps({
   isOpen: Boolean,
 });
 
 const emit = defineEmits(["close"]);
+
+// Регистрация в стеке модалок для закрытия по Esc
+initModalEscapeHandler();
+const { register, unregister } = useModalStack(() => emit("close"));
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -2109,14 +2119,22 @@ watch(
   () => props.isOpen,
   (newVal) => {
     if (newVal) {
+      register();
       loadData();
+    } else {
+      unregister();
     }
   },
+  { immediate: true },
 );
 
 onMounted(() => {
   if (props.isOpen) {
     loadData();
   }
+});
+
+onUnmounted(() => {
+  unregister();
 });
 </script>
